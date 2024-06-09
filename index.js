@@ -2,7 +2,7 @@ const logging = require("./logging.js");
 const axios = require("axios");
 
 axios.interceptors.request.use((request) => {
-   logging.debug(
+  logging.debug(
     `>>> ${request.method.toUpperCase()} ${request.url}\n${JSON.stringify(request.data, null, 2)}`,
   );
   return request;
