@@ -1,9 +1,10 @@
 const logging = require("./logging.js");
 const axios = require("axios");
+const dateFormatter = require("date-fns-tz");
 
 axios.interceptors.request.use((request) => {
   logging.debug(
-    `>>> ${request.method.toUpperCase()} ${request.url}\n${JSON.stringify(request.data, null, 2)}`,
+    `>>> ${request.method.toUpperCase()} ${request.url}\nParams: ${JSON.stringify(request.params, null, 2)}\nBody: ${JSON.stringify(request.data, null, 2)}`,
   );
   return request;
 });
@@ -67,8 +68,11 @@ exports.handler = async (event) => {
     },
     params: {
       facilityId: getEnvVariable("FACILITY_ID"),
-      fromDate: "20240609", // TODO: set to today
-      //toDate: '20240612',
+      fromDate: dateFormatter.formatInTimeZone(
+        new Date(),
+        "Europe/Rome",
+        "yyyyMMdd",
+      ),
       eventType: "Class",
     },
   };
