@@ -12,8 +12,10 @@ axios.interceptors.response.use(response => {
 })
 
 axios.defaults.headers.common['x-mwapps-client'] = getEnvVariable('CLIENT_ID');
+axios.defaults.headers.common['Content-Type'] = 'application/json';
 
 const CORE_API_BASE_URI = 'https://services.mywellness.com';
+const CALENDAR_API_BASE_URI = 'https://calendar.mywellness.com/v2';
 
 function getEnvVariable(name) {
     const value = process.env[name];
@@ -30,18 +32,42 @@ function isResponseError(response){
 
 exports.handler = async (event) => {
 
-    let loginResponse = await axios.post(`${CORE_API_BASE_URI}/Application/${getEnvVariable('APPLICATION_ID')}/Login`,
-    {
-        "domain": "it.virginactive",
-        "keepMeLoggedIn": true,
-        "password": getEnvVariable('LOGIN_PASSWORD'),
-        "username": getEnvVariable('LOGIN_USERNAME')
-    });
+    // First of all login
+    var loginRequest = {
+        method: 'POST',
+        url: `${CORE_API_BASE_URI}/Application/${getEnvVariable('APPLICATION_ID')}/Login`,
+        data: {
+            domain: 'it.virginactive',
+            keepMeLoggedIn: true,
+            password: getEnvVariable('LOGIN_PASSWORD'),
+            username: getEnvVariable('LOGIN_USERNAME')
+        }
+    }
+
+    let loginResponse = await axios.request(loginRequest);
 
     if(isResponseError(loginResponse)){
         logging.error("Unable to login. stopping")
         process.exit(1);
     }
 
-    logging.info(loginResponse.data.token)
+    // Search all classes that match my criteria of interest
+    let searchClassesRequest = {
+        method: 'GET',
+        url: `${CALENDAR_API_BASE_URI}/enduser/class/search`,
+        params: {
+            facilityId: getEnvVariable('FACILITY_ID'),
+            toDate: '20240611',
+            fromDate: '20240611',
+            eventType: 'Class'
+        },
+    }
+    let searchClassesResponse = await axios.request(searchClassesRequest);
+
+    if(isResponseError(searchClassesResponse)){
+        logging.error("Unable to get classes. stopping")
+        process.exit(1);
+    }
+
+    logging.info(`Found ${searchClassesResponse.data.length} classes.`)
 };
