@@ -24,13 +24,15 @@ describe("Scan classes", function () {
           ),
       )
       .returns({
-        applicationId: process.env["APPLICATION_ID"],
-        facilityId: process.env["FACILITY_ID"],
-        clientId: process.env["CLIENT_ID"],
-        // TODO: structure this a bit more
-        loginUsername: process.env["LOGIN_USERNAME"],
-        loginPassword: process.env["LOGIN_PASSWORD"],
-        loginDomain: process.env["LOGIN_DOMAIN"],
+        SecretString: JSON.stringify({
+          applicationId: process.env["APPLICATION_ID"],
+          facilityId: process.env["FACILITY_ID"],
+          clientId: process.env["CLIENT_ID"],
+          // TODO: structure this a bit more
+          loginUsername: process.env["LOGIN_USERNAME"],
+          loginPassword: process.env["LOGIN_PASSWORD"],
+          loginDomain: process.env["LOGIN_DOMAIN"],
+        }),
       });
 
     afterEach(() => secretsManagerStub.restore());

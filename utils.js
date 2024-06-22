@@ -29,7 +29,9 @@ module.exports = {
       }),
     );
 
-    const value = secret[name];
+    const secretJson = JSON.parse(secret.SecretString);
+
+    const value = secretJson[name];
     if (!value) {
       throw new Error(`Secret ${name} not found.`);
     }
