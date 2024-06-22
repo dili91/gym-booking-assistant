@@ -1,4 +1,3 @@
-
 const axios = require("axios");
 const dateFormatter = require("date-fns-tz");
 
@@ -6,16 +5,26 @@ const logging = require("./logging.js");
 const utils = require("./utils.js");
 const config = require("./config.js");
 
+const CORE_API_BASE_URI = "https://services.mywellness.com";
+const CALENDAR_API_BASE_URI = "https://calendar.mywellness.com/v2";
+const SUBSCRIBED_EVENT_NAMES_TOKENS = ["Cycle"];
+
 exports.handler = async (event) => {
+  const APPLICATION_ID = await utils.getSecret("applicationId");
+  const FACILITY_ID = await utils.getSecret("facilityId");
+  const LOGIN_DOMAIN = await utils.getSecret("loginDomain");
+  const LOGIN_USERNAME = await utils.getSecret("loginUsername");
+  const LOGIN_PASSWORD = await utils.getSecret("loginPassword");
+
   // First of all login
   const loginRequest = {
     method: "POST",
-    url: `${config.CORE_API_BASE_URI}/Application/${utils.getEnvVariable("APPLICATION_ID")}/Login`,
+    url: `${CORE_API_BASE_URI}/Application/${APPLICATION_ID}/Login`,
     data: {
-      domain: "it.virginactive",
+      domain: LOGIN_DOMAIN,
       keepMeLoggedIn: true,
-      password: utils.getEnvVariable("LOGIN_PASSWORD"),
-      username: utils.getEnvVariable("LOGIN_USERNAME"),
+      password: LOGIN_PASSWORD,
+      username: LOGIN_USERNAME,
     },
   };
 
@@ -29,12 +38,12 @@ exports.handler = async (event) => {
   // Search all classes that match my criteria of interest
   const searchClassesRequest = {
     method: "GET",
-    url: `${config.CALENDAR_API_BASE_URI}/enduser/class/search`,
+    url: `${CALENDAR_API_BASE_URI}/enduser/class/search`,
     headers: {
       Authorization: `Bearer ${loginResponse.data.token}`,
     },
     params: {
-      facilityId: utils.getEnvVariable("FACILITY_ID"),
+      facilityId: FACILITY_ID,
       fromDate: dateFormatter.formatInTimeZone(
         new Date(),
         "Europe/Rome",
@@ -53,7 +62,7 @@ exports.handler = async (event) => {
   const filteredEvents = searchClassesResponse.data.filter(
     (e) =>
       // Include only the events whose names include subscribed tokens
-      config.SUBSCRIBED_EVENT_NAMES_TOKENS.some((s) =>
+      SUBSCRIBED_EVENT_NAMES_TOKENS.some((s) =>
         e.name.toLowerCase().includes(s.toLowerCase()),
       ) &&
       // excludes the classes booked already
