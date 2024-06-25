@@ -1,5 +1,7 @@
 const axios = require("axios");
 const dateFormatter = require("date-fns-tz");
+const { EventBridgeClient, PutEventsCommand } = require("@aws-sdk/client-eventbridge");
+const eventBridgeClient = new EventBridgeClient();
 
 const logging = require("./logging.js");
 const utils = require("./utils.js");
@@ -77,11 +79,34 @@ exports.handler = async (event) => {
     `Found ${filteredEvents.length} events of the categories of interest (${config.SUBSCRIBED_EVENT_NAMES_TOKENS}).`,
   );
 
-  filteredEvents.forEach((e) => {
+
+  for (const e of filteredEvents){
     switch (e.bookingInfo.bookingUserStatus) {
       case "CanBook":
         logging.info(
           `Booking for class ${e.name} with id=${e.id} should happen immediately.`,
+        );
+        const classBookingAvailableEvent = { // PutEventsRequest
+          Entries: [ // PutEventsRequestEntryList // required
+            { // PutEventsRequestEntry
+              Time: new Date(),
+              Source: "GymBookingAssistant.scan",
+              DetailType: "ClassBookingAvailable",
+              Detail: JSON.stringify({
+                class: {
+                  id: e.id,
+                  name: e.name
+                }
+              }),
+            },
+          ]
+        };
+        logging.info(
+          `Publishing event=${JSON.stringify(classBookingAvailableEvent, null, 2)}.`,
+        );
+        const putEventResponse = await eventBridgeClient.send(new PutEventsCommand(classBookingAvailableEvent));
+        logging.info(
+          `Outcome: ${JSON.stringify(putEventResponse, null, 2)}.`,
         );
         break;
       case "WaitingBookingOpensPremium":
@@ -95,5 +120,5 @@ exports.handler = async (event) => {
         );
         return;
     }
-  });
+  }
 };

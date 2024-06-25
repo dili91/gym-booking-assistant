@@ -3,7 +3,7 @@ const {
   SecretsManagerClient,
 } = require("@aws-sdk/client-secrets-manager");
 
-const client = new SecretsManagerClient();
+const secretsManagerClient = new SecretsManagerClient();
 
 module.exports = {
   getEnvVariable: (name) => {
@@ -23,7 +23,7 @@ module.exports = {
   },
 
   getSecret: async (name) => {
-    const secret = await client.send(
+    const secret = await secretsManagerClient.send(
       new GetSecretValueCommand({
         SecretId: "GymBookingAssistant",
       }),
