@@ -1,5 +1,6 @@
 var sinon = require("sinon");
 const axios = require("axios");
+const { v4: uuidv4 } = require("uuid");
 
 var scan = require("../index");
 
@@ -8,18 +9,20 @@ const {
   GetSecretValueCommand,
 } = require("@aws-sdk/client-secrets-manager");
 
+const {
+  EventBridgeClient,
+  PutEventsCommand,
+} = require("@aws-sdk/client-eventbridge");
+
 describe("Scan classes", function () {
-  let secretsManagerStub;
+  let secretsManagerMock;
+  let eventBridgeMock;
   let gymApiMock;
 
   beforeEach(() => {
-    // Stub secret manager 
-    secretsManagerStub = sinon.stub(
-      SecretsManagerClient.prototype,
-      "send",
-    );
+    secretsManagerMock = sinon.stub(SecretsManagerClient.prototype, "send");
 
-    secretsManagerStub
+    secretsManagerMock
       .withArgs(
         sinon.match
           .instanceOf(GetSecretValueCommand)
@@ -42,53 +45,107 @@ describe("Scan classes", function () {
         }),
       });
 
-      // Stub 
-      gymApiMock = sinon.stub(axios, "request");
+    eventBridgeMock = sinon.stub(EventBridgeClient.prototype, "send");
 
-      // Stub login
-      gymApiMock.withArgs(
-        sinon.match(function(request){
-          return request.method == 'POST' && request.url.endsWith('/Login')
-        }))
-        .returns({
-          status: 200,
-          data: {
-            token: "a-mock-token"
-          }
-      })
-
-      gymApiMock.withArgs(
-        sinon.match(function(request){
-          return request.method == 'GET' && request.url.endsWith('/class/search')
-        }))
-        .returns({
-          status: 200,
-          data: [
-            {
-              id: 12345678,
-              name: 'Cycle burn',
-              isParticipant: false,
-              bookingInfo:{
-                bookingUserStatus: 'CanBook'
-              }
-            }
-          ]
-      })
-      
+    gymApiMock = sinon.stub(axios, "request");
   });
 
   afterEach(() => {
-    secretsManagerStub.restore();
+    secretsManagerMock.restore();
     gymApiMock.restore();
   });
 
-  it("It should find a class and publish a class available event", async function () {
-    // TODO: arrange
+  it("It should find a class that can be booked immediately, and publish a ClassBookingAvailable event", async function () {
+    // Arrange
+    const classId = uuidv4();
+
+    gymApiMock
+      .withArgs(
+        sinon.match(function (request) {
+          return request.method == "POST" && request.url.endsWith("/Login");
+        }),
+      )
+      .returns({
+        status: 200,
+        data: {
+          token: "a-mock-token",
+        },
+      });
+
+    gymApiMock
+      .withArgs(
+        sinon.match(function (request) {
+          return (
+            request.method == "GET" && request.url.endsWith("/class/search")
+          );
+        }),
+      )
+      .returns({
+        status: 200,
+        data: [
+          {
+            id: classId,
+            name: "Cycle burn",
+            isParticipant: false,
+            bookingInfo: {
+              bookingUserStatus: "CanBook",
+            },
+          },
+        ],
+      });
+
+    eventBridgeMock
+      .withArgs(
+        sinon.match.instanceOf(PutEventsCommand).and(
+          sinon.match(function (value) {
+            const e = value.input.Entries[0];
+            return (
+              e.Source == "GymBookingAssistant.scan" &&
+              e.DetailType == "ClassBookingAvailable"
+            );
+          }),
+        ),
+      )
+      .returns({
+        $metadata: {
+          httpStatusCode: 200,
+        },
+        Entries: [
+          {
+            EventId: "12345678",
+          },
+        ],
+        FailedEntryCount: 0,
+      });
 
     // Act
     await scan.handler();
 
     // Assert
-    sinon.assert.calledOnce(secretsManagerStub)
+    sinon.assert.calledOnce(secretsManagerMock);
+    sinon.assert.calledTwice(gymApiMock);
+    sinon.assert.calledWithMatch(
+      gymApiMock,
+      sinon.match(function (request) {
+        return request.method == "POST" && request.url.endsWith("/Login");
+      }),
+    );
+    sinon.assert.calledWithMatch(
+      gymApiMock,
+      sinon.match(function (request) {
+        return request.method == "GET" && request.url.endsWith("/class/search");
+      }),
+    );
+    sinon.assert.calledOnceWithMatch(
+      eventBridgeMock,
+      sinon.match(function (command) {
+        const e = command.input.Entries[0];
+        return (
+          e.Source == "GymBookingAssistant.scan" &&
+          e.DetailType == "ClassBookingAvailable" &&
+          JSON.parse(e.Detail).class.id == classId
+        );
+      }),
+    );
   });
 });

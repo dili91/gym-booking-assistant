@@ -5,6 +5,9 @@ const {
 
 const secretsManagerClient = new SecretsManagerClient();
 
+// Holds the JSON secret returned by the AWS secret manager
+let secret = null;
+
 module.exports = {
   getEnvVariable: (name) => {
     const value = process.env[name];
@@ -23,15 +26,17 @@ module.exports = {
   },
 
   getSecret: async (name) => {
-    const secret = await secretsManagerClient.send(
-      new GetSecretValueCommand({
-        SecretId: "GymBookingAssistant",
-      }),
-    );
+    if (!secret) {
+      const secretValue = await secretsManagerClient.send(
+        new GetSecretValueCommand({
+          SecretId: "GymBookingAssistant",
+        }),
+      );
 
-    const secretJson = JSON.parse(secret.SecretString);
+      secret = JSON.parse(secretValue.SecretString);
+    }
 
-    const value = secretJson[name];
+    const value = secret[name];
     if (!value) {
       throw new Error(`Secret ${name} not found.`);
     }
