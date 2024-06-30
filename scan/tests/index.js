@@ -3,6 +3,7 @@ const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
 
 var scan = require("../index");
+var utils = require("/opt/nodejs/utils")
 
 const {
   SecretsManagerClient,
@@ -16,6 +17,7 @@ const {
 
 describe("Scan classes", function () {
   let secretsManagerMock;
+  let getSecretMock;
   let eventBridgeMock;
   let gymApiMock;
 
@@ -35,7 +37,8 @@ describe("Scan classes", function () {
       )
       .returns({
         SecretString: JSON.stringify({
-          applicationId: process.env["APPLICATION_ID"],
+          applicationId: "foo",
+          //applicationId: process.env["APPLICATION_ID"],
           facilityId: process.env["FACILITY_ID"],
           clientId: process.env["CLIENT_ID"],
           // TODO: structure this a bit more
@@ -45,6 +48,19 @@ describe("Scan classes", function () {
         }),
       });
 
+    getSecretMock = sinon.stub(utils, "getSecret").returns({
+      SecretString: JSON.stringify({
+        applicationId: "foo",
+        //applicationId: process.env["APPLICATION_ID"],
+        facilityId: process.env["FACILITY_ID"],
+        clientId: process.env["CLIENT_ID"],
+        // TODO: structure this a bit more
+        loginUsername: process.env["LOGIN_USERNAME"],
+        loginPassword: process.env["LOGIN_PASSWORD"],
+        loginDomain: process.env["LOGIN_DOMAIN"],
+      })
+    });
+
     eventBridgeMock = sinon.stub(EventBridgeClient.prototype, "send");
 
     gymApiMock = sinon.stub(axios, "request");
@@ -52,6 +68,7 @@ describe("Scan classes", function () {
 
   afterEach(() => {
     secretsManagerMock.restore();
+    getSecretMock.restore();
     gymApiMock.restore();
   });
 
@@ -122,7 +139,7 @@ describe("Scan classes", function () {
     await scan.handler();
 
     // Assert
-    sinon.assert.calledOnce(secretsManagerMock);
+    sinon.assert.callCount(getSecretMock, 5);
     sinon.assert.calledTwice(gymApiMock);
     sinon.assert.calledWithMatch(
       gymApiMock,

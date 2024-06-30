@@ -1,0 +1,20 @@
+set dotenv-load := true
+
+alias f := format
+alias t := test
+alias b := bundle
+alias d := deploy
+
+test:
+    mkdir -p /opt/nodejs
+    find "$(pwd -P)/../common/nodejs" -name "*.js" -maxdepth 1 -exec ln -s "{}" /opt/nodejs/ ';'
+    npm test
+
+format: 
+    npx prettier . --write
+
+bundle:
+    zip -r gym_booking_assistant.zip .
+
+deploy: bundle
+    aws lambda update-function-code --region eu-south-1 --function-name GymBookingAssistant --zip-file fileb://gym_booking_assistant.zip

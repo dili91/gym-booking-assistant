@@ -6,9 +6,9 @@ const {
 } = require("@aws-sdk/client-eventbridge");
 const eventBridgeClient = new EventBridgeClient();
 
-const logging = require("./logging.js");
-const utils = require("./utils.js");
-const config = require("./config.js");
+const logging = require("/opt/nodejs/logging");
+const utils = require("/opt/nodejs/utils");
+const config = require("/opt/nodejs/config");
 
 const CORE_API_BASE_URI = "https://services.mywellness.com";
 const CALENDAR_API_BASE_URI = "https://calendar.mywellness.com/v2";

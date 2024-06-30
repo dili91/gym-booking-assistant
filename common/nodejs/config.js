@@ -1,9 +1,8 @@
 const axios = require("axios");
+const maskData = require("maskdata");
 
 const logging = require("./logging.js");
-const utils = require("./utils.js");
-
-const maskData = require("maskdata");
+const utils = require("./utils");
 
 const RESPONSE_BODY_MAX_SIZE_LOGGED = 300;
 
