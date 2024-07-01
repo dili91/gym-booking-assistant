@@ -52,7 +52,7 @@ describe("Scan classes", function () {
 
     eventBridgeStub = sinon.stub(EventBridgeClient.prototype, "send");
 
-   //gymApiMock = sinon.stub(axios, "request");
+    //gymApiMock = sinon.stub(axios, "request");
   });
 
   afterEach(() => {

@@ -36,7 +36,10 @@ exports.handler = async (event) => {
   const loginResponse = await httpClient.request(loginRequest);
 
   if (utils.isResponseError(loginResponse)) {
-    await logging.error("Unable to login. stopping. Reason: "+ JSON.stringify(loginResponse.data));
+    await logging.error(
+      "Unable to login. stopping. Reason: " +
+        JSON.stringify(loginResponse.data),
+    );
     process.exit(1);
   }
 

@@ -27,7 +27,7 @@ function truncateString(str, num) {
   }
 }
 
-async function getSecret(name){
+async function getSecret(name) {
   if (!secret) {
     const secretValue = await secretsManagerClient.send(
       new GetSecretValueCommand({
@@ -83,7 +83,7 @@ module.exports = {
       );
       return request;
     });
-    
+
     client.interceptors.response.use(async (response) => {
       await logging.debug(
         `<<< ${response.status} ${response.request.method.toUpperCase()} ${response.config.url}
@@ -95,5 +95,5 @@ module.exports = {
     });
 
     return client;
-  }
+  },
 };
