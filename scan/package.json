@@ -16,6 +16,7 @@
     "uuid": "^10.0.0"
   },
   "scripts": {
-    "test": "NODE_PATH=../common/nodejs/node_modules mocha tests/**/*.js"
+    "test": "NODE_PATH=../common/nodejs/node_modules mocha tests/**/*.js",
+    "run-local": "NODE_PATH=../common/nodejs/node_modules node -e \"require('./index.js').handler();\""
   }
 }

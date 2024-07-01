@@ -166,3 +166,6 @@ dist
 
 # AWS Lambda bundle
 *.zip
+
+# MacOS
+*.DS_Store 

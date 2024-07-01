@@ -1,4 +1,3 @@
-const axios = require("axios");
 const dateFormatter = require("date-fns-tz");
 const {
   EventBridgeClient,
@@ -6,9 +5,8 @@ const {
 } = require("@aws-sdk/client-eventbridge");
 const eventBridgeClient = new EventBridgeClient();
 
-const logging = require("/opt/nodejs/logging");
 const utils = require("/opt/nodejs/utils");
-const config = require("/opt/nodejs/config");
+const logging = require("/opt/nodejs/logging");
 
 const CORE_API_BASE_URI = "https://services.mywellness.com";
 const CALENDAR_API_BASE_URI = "https://calendar.mywellness.com/v2";
@@ -20,6 +18,8 @@ exports.handler = async (event) => {
   const LOGIN_DOMAIN = await utils.getSecret("loginDomain");
   const LOGIN_USERNAME = await utils.getSecret("loginUsername");
   const LOGIN_PASSWORD = await utils.getSecret("loginPassword");
+
+  const httpClient = utils.getHttpClient();
 
   // First of all login
   const loginRequest = {
@@ -33,10 +33,10 @@ exports.handler = async (event) => {
     },
   };
 
-  const loginResponse = await axios.request(loginRequest);
+  const loginResponse = await httpClient.request(loginRequest);
 
   if (utils.isResponseError(loginResponse)) {
-    logging.error("Unable to login. stopping");
+    await logging.error("Unable to login. stopping. Reason: "+ JSON.stringify(loginResponse.data));
     process.exit(1);
   }
 
@@ -57,7 +57,7 @@ exports.handler = async (event) => {
       eventType: "Class",
     },
   };
-  const searchClassesResponse = await axios.request(searchClassesRequest);
+  const searchClassesResponse = await httpClient.request(searchClassesRequest);
 
   if (utils.isResponseError(searchClassesResponse)) {
     logging.error("Unable to get classes. stopping");
@@ -79,7 +79,7 @@ exports.handler = async (event) => {
 
   logging.info(`Found ${searchClassesResponse.data.length} classes.`);
   logging.info(
-    `Found ${filteredEvents.length} events of the categories of interest (${config.SUBSCRIBED_EVENT_NAMES_TOKENS}).`,
+    `Found ${filteredEvents.length} events of the categories of interest (${SUBSCRIBED_EVENT_NAMES_TOKENS}).`,
   );
 
   for (const e of filteredEvents) {
