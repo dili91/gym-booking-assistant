@@ -80,15 +80,14 @@ exports.handler = async (event) => {
       e.bookingInfo.bookingUserStatus != "BookingClosed",
   );
 
-  logging.info(`Found ${searchClassesResponse.data.length} classes.`);
-  logging.info(
+  logging.debug(
     `Found ${filteredEvents.length} events of the categories of interest (${SUBSCRIBED_EVENT_NAMES_TOKENS}).`,
   );
 
   for (const e of filteredEvents) {
     switch (e.bookingInfo.bookingUserStatus) {
       case "CanBook":
-        logging.info(
+        logging.debug(
           `Booking for class ${e.name} with id=${e.id} should happen immediately.`,
         );
         const classBookingAvailableEvent = {
@@ -109,21 +108,17 @@ exports.handler = async (event) => {
             },
           ],
         };
-        logging.info(
-          `Publishing event=${JSON.stringify(classBookingAvailableEvent, null, 2)}.`,
-        );
         const putEventResponse = await eventBridgeClient.send(
           new PutEventsCommand(classBookingAvailableEvent),
         );
-        logging.info(`Outcome: ${JSON.stringify(putEventResponse, null, 2)}.`);
         break;
       case "WaitingBookingOpensPremium":
-        logging.info(
+        logging.debug(
           `Booking for class ${e.name} with id=${e.id} should be scheduled on ${e.bookingInfo.bookingOpensOn}`,
         );
         break;
       default:
-        logging.info(
+        logging.error(
           `Unexpected status for class ${e.name} with id ${e.id}: ${e.bookingInfo.bookingUserStatus}. Skipping.`,
         );
         return;

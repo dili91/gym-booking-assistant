@@ -2,7 +2,8 @@
 
 Use `just` to see available recipes
 
-TODO: 
+TODO:
+
 - [ ] Fix tests
 - [ ] Try scheduling an EventBridge programmatically
 - [ ] Define the book lambda
