@@ -108,9 +108,15 @@ exports.handler = async (event) => {
             },
           ],
         };
+
         const putEventResponse = await eventBridgeClient.send(
           new PutEventsCommand(classBookingAvailableEvent),
         );
+
+        if(putEventResponse["$metadata"].httpStatusCode != 200 || putEventResponse.FailedEntryCount > 0){
+          logging.error("There were one or more errors while publishing a ClassBookingAvailable event.")
+        }
+        
         break;
       case "WaitingBookingOpensPremium":
         logging.debug(
