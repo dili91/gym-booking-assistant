@@ -11,7 +11,7 @@ test:
     mkdir -p /opt/nodejs
     find "$(pwd -P)/common/nodejs" -name "*.js" -maxdepth 1 -exec ln -s "{}" /opt/nodejs/ ';'
     cd scan && npm test
-
+    cd common/nodejs && npm test
 run:
     mkdir -p /opt/nodejs
     find "$(pwd -P)/common/nodejs" -name "*.js" -maxdepth 1 -exec ln -s "{}" /opt/nodejs/ ';'

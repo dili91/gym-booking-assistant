@@ -27,25 +27,6 @@ function truncateString(str, num) {
   }
 }
 
-async function getSecret(name) {
-  if (!secret) {
-    const secretValue = await secretsManagerClient.send(
-      new GetSecretValueCommand({
-        SecretId: "GymBookingAssistant",
-      }),
-    );
-
-    secret = JSON.parse(secretValue.SecretString);
-  }
-
-  const value = secret[name];
-  if (!value) {
-    throw new Error(`Secret ${name} not found.`);
-  }
-
-  return value;
-}
-
 module.exports = {
   getEnvVariable: (name) => {
     const value = process.env[name];
@@ -63,13 +44,30 @@ module.exports = {
     );
   },
 
-  getSecret: getSecret,
+  getSecret: async (name) => {
+    if (!secret) {
+      const secretValue = await secretsManagerClient.send(
+        new GetSecretValueCommand({
+          SecretId: "GymBookingAssistant",
+        }),
+      );
+
+      secret = JSON.parse(secretValue.SecretString);
+    }
+
+    const value = secret[name];
+    if (!value) {
+      throw new Error(`Secret ${name} not found.`);
+    }
+
+    return value;
+  },
 
   getHttpClient: () => {
     let client = axios.create();
 
     client.interceptors.request.use(async (request) => {
-      const CLIENT_ID = await getSecret("clientId");
+      const CLIENT_ID = await module.exports.getSecret("clientId");
       request.headers["x-mwapps-client"] = CLIENT_ID;
       return request;
     });

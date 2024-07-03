@@ -19,6 +19,12 @@ exports.handler = async (event) => {
   const LOGIN_USERNAME = await utils.getSecret("loginUsername");
   const LOGIN_PASSWORD = await utils.getSecret("loginPassword");
 
+  console.log(APPLICATION_ID);
+  console.log(FACILITY_ID);
+  console.log(LOGIN_DOMAIN);
+  console.log(LOGIN_USERNAME);
+  console.log(LOGIN_PASSWORD);
+
   const httpClient = utils.getHttpClient();
 
   // First of all login
@@ -113,10 +119,15 @@ exports.handler = async (event) => {
           new PutEventsCommand(classBookingAvailableEvent),
         );
 
-        if(putEventResponse["$metadata"].httpStatusCode != 200 || putEventResponse.FailedEntryCount > 0){
-          logging.error("There were one or more errors while publishing a ClassBookingAvailable event.")
+        if (
+          putEventResponse["$metadata"].httpStatusCode != 200 ||
+          putEventResponse.FailedEntryCount > 0
+        ) {
+          logging.error(
+            "There were one or more errors while publishing a ClassBookingAvailable event.",
+          );
         }
-        
+
         break;
       case "WaitingBookingOpensPremium":
         logging.debug(
