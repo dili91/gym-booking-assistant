@@ -1,6 +1,6 @@
 //TODO: review Secret manager and API mocks!
 
-var sinon = require("sinon");
+const sandbox = require("sinon").createSandbox();
 const { v4: uuidv4 } = require("uuid");
 
 var scan = require("../index");
@@ -21,30 +21,16 @@ describe("Scan classes", function () {
 
   beforeEach(() => {
     // Stub interactions with secrets
-    getSecretStub = sinon.stub(utils, "getSecret");
+    getSecretStub = sandbox.stub(utils, "getSecret");
     stubSecretConfig();
 
     // Stub HTTP client
     let httpClientFake = utils.getHttpClient();
     httpClientFake.interceptors.request.handlers = [];
-    restApiStub = sinon.stub(httpClientFake, "request");
-    sinon.stub(utils, "getHttpClient").returns(httpClientFake);
-
-    // Stub for the interactions with AWS EventBridge
-    eventBridgeStub = sinon.stub(EventBridgeClient.prototype, "send");
-  });
-
-  afterEach(() => {
-    getSecretStub.restore();
-    eventBridgeStub.restore();
-    restApiStub.restore();
-  });
-
-  it("It should find a class that can be booked immediately, and publish a ClassBookingAvailable event", async function () {
-    // Arrange
+    restApiStub = sandbox.stub(httpClientFake, "request");
     restApiStub
       .withArgs(
-        sinon.match(function (request) {
+        sandbox.match(function (request) {
           return request.method == "POST" && request.url.endsWith("/Login");
         }),
       )
@@ -55,9 +41,23 @@ describe("Scan classes", function () {
         },
       });
 
+    // Stub utils
+    utilsStub = sandbox.stub(utils, "getHttpClient").returns(httpClientFake);
+
+    // Stub for the interactions with AWS EventBridge
+    //eventBridgeStub = sandbox.stub(EventBridgeClient.prototype, "send");
+  });
+
+  afterEach(() => {
+    restApiStub.restore();
+    sandbox.restore();
+  });
+
+  it("It should find a class that can be booked immediately, and publish a ClassBookingAvailable event", async function () {
+    // Arrange
     restApiStub
       .withArgs(
-        sinon.match(function (request) {
+        sandbox.match(function (request) {
           return (
             request.method == "GET" && request.url.endsWith("/class/search")
           );
@@ -70,6 +70,9 @@ describe("Scan classes", function () {
             id: classId,
             name: "Cycle burn",
             isParticipant: false,
+            startDate: "2024-07-03T18:45:00",
+            endDate: "2024-07-03T19:45:00",
+            hasLayout: true,
             bookingInfo: {
               bookingUserStatus: "CanBook",
             },
@@ -79,8 +82,8 @@ describe("Scan classes", function () {
 
     eventBridgeStub
       .withArgs(
-        sinon.match.instanceOf(PutEventsCommand).and(
-          sinon.match(function (value) {
+        sandbox.match.instanceOf(PutEventsCommand).and(
+          sandbox.match(function (value) {
             const e = value.input.Entries[0];
             return (
               e.Source == "GymBookingAssistant.scan" &&
@@ -105,33 +108,83 @@ describe("Scan classes", function () {
     await scan.handler();
 
     // Assert
-    sinon.assert.callCount(getSecretStub, 5);
+    sandbox.assert.callCount(getSecretStub, 5);
 
-    sinon.assert.calledTwice(restApiStub);
-    sinon.assert.calledWithMatch(
+    sandbox.assert.calledTwice(restApiStub);
+    sandbox.assert.calledWithMatch(
       restApiStub,
-      sinon.match(function (request) {
+      sandbox.match(function (request) {
         return request.method == "POST" && request.url.endsWith("/Login");
       }),
     );
-    sinon.assert.calledWithMatch(
+    sandbox.assert.calledWithMatch(
       restApiStub,
-      sinon.match(function (request) {
+      sandbox.match(function (request) {
         return request.method == "GET" && request.url.endsWith("/class/search");
       }),
     );
 
-    sinon.assert.calledOnceWithMatch(
+    sandbox.assert.calledOnceWithMatch(
       eventBridgeStub,
-      sinon.match(function (command) {
+      sandbox.match(function (command) {
         const e = command.input.Entries[0];
         return (
+          command instanceof PutEventsCommand &&
           e.Source == "GymBookingAssistant.scan" &&
           e.DetailType == "ClassBookingAvailable" &&
           JSON.parse(e.Detail).class.id == classId
         );
       }),
     );
+  });
+
+  it("It should find a class that cannot be booked immediately, and schedule a dynamic rule on EventBridge to book it as soon as possible", async function () {
+    restApiStub
+      .withArgs(
+        sandbox.match(function (request) {
+          return (
+            request.method == "GET" && request.url.endsWith("/class/search")
+          );
+        }),
+      )
+      .returns({
+        status: 200,
+        data: [
+          {
+            id: classId,
+            name: "Cycle burn",
+            isParticipant: false,
+            startDate: "2024-07-03T18:45:00",
+            endDate: "2024-07-03T19:45:00",
+            hasLayout: true,
+            bookingInfo: {
+              bookingUserStatus: "WaitingBookingOpensPremium",
+              bookingOpensOn: "2024-07-03T15:40:00",
+            },
+          },
+        ],
+      });
+
+    // Act
+    await scan.handler();
+
+    // Assert
+    // sandbox.assert.neverCalledWith(
+    //   eventBridgeStub,
+    //   sandbox.match(sandbox.match.instanceOf(PutEventsCommand)),
+    // );
+
+    // sandbox.assert.calledOnceWithMatch(
+    //   eventBridgeStub,
+    //   sandbox.match(function (command) {
+    //     const e = command.input.Entries[0];
+    //     return (
+    //       e.Source == "GymBookingAssistant.scan" &&
+    //       e.DetailType == "ClassBookingAvailable" &&
+    //       JSON.parse(e.Detail).class.id == classId
+    //     );
+    //   }),
+    // );
   });
 
   function stubSecretConfig() {

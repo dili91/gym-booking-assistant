@@ -5,7 +5,6 @@ AWS_REGION := "eu-south-1"
 alias f := format
 alias r := run
 alias t := test
-alias d := deploy-lambda-function
 
 test:
     mkdir -p /opt/nodejs
@@ -20,7 +19,7 @@ run:
 format: 
     npx prettier . --write
 
-deploy-lambda-layer:
+deploy-layer:
     cd ./common && zip -r lambda_layer.zip .
     aws lambda publish-layer-version \
     --no-cli-pager \
@@ -29,10 +28,18 @@ deploy-lambda-layer:
     --compatible-runtimes nodejs20.x \
     --zip-file fileb://common/lambda_layer.zip \
 
-deploy-lambda-function:
-    cd ./scan && zip -r gym_booking_assistant.zip .
+deploy-scan-function:
+    cd ./scan && zip -r scan.zip .
     aws lambda update-function-code \
     --no-cli-pager \
     --region {{AWS_REGION}} \
-    --function-name GymBookingAssistant \
-    --zip-file fileb://scan/gym_booking_assistant.zip
+    --function-name GymBookingAssistant_Scan \
+    --zip-file fileb://scan/scan.zip
+
+deploy-book-function:
+    cd ./book && zip -r book.zip .
+    aws lambda update-function-code \
+    --no-cli-pager \
+    --region {{AWS_REGION}} \
+    --function-name GymBookingAssistant_Book \
+    --zip-file fileb://book/book.zip
