@@ -10,10 +10,15 @@ const {
   EventBridgeClient,
   PutEventsCommand,
 } = require("@aws-sdk/client-eventbridge");
+const {
+  SchedulerClient,
+  CreateScheduleCommand,
+} = require("@aws-sdk/client-scheduler");
 
 describe("Scan classes", function () {
   let getSecretStub;
   let eventBridgeStub;
+  let schedulerStub;
   let restApiStub;
 
   //TODO move
@@ -45,11 +50,13 @@ describe("Scan classes", function () {
     utilsStub = sandbox.stub(utils, "getHttpClient").returns(httpClientFake);
 
     // Stub for the interactions with AWS EventBridge
-    //eventBridgeStub = sandbox.stub(EventBridgeClient.prototype, "send");
+    eventBridgeStub = sandbox.stub(EventBridgeClient.prototype, "send");
+
+    // Stub for the interactions with AWS EventBridge Scheduler
+    schedulerStub = sandbox.stub(SchedulerClient.prototype, "send");
   });
 
   afterEach(() => {
-    restApiStub.restore();
     sandbox.restore();
   });
 
@@ -159,32 +166,45 @@ describe("Scan classes", function () {
             hasLayout: true,
             bookingInfo: {
               bookingUserStatus: "WaitingBookingOpensPremium",
-              bookingOpensOn: "2024-07-03T15:40:00",
+              bookingOpensOn: "2024-07-04T06:45:00+02:00",
             },
           },
         ],
+      });
+
+    schedulerStub
+      .withArgs(
+        sandbox.match.instanceOf(CreateScheduleCommand).and(
+          sandbox.match(function (value) {
+            return value.input.Name == `ScheduleBooking_${classId}`;
+          }),
+        ),
+      )
+      .returns({
+        $metadata: {
+          httpStatusCode: 200,
+        },
       });
 
     // Act
     await scan.handler();
 
     // Assert
-    // sandbox.assert.neverCalledWith(
-    //   eventBridgeStub,
-    //   sandbox.match(sandbox.match.instanceOf(PutEventsCommand)),
-    // );
+    sandbox.assert.neverCalledWith(
+      eventBridgeStub,
+      sandbox.match(sandbox.match.instanceOf(PutEventsCommand)),
+    );
 
-    // sandbox.assert.calledOnceWithMatch(
-    //   eventBridgeStub,
-    //   sandbox.match(function (command) {
-    //     const e = command.input.Entries[0];
-    //     return (
-    //       e.Source == "GymBookingAssistant.scan" &&
-    //       e.DetailType == "ClassBookingAvailable" &&
-    //       JSON.parse(e.Detail).class.id == classId
-    //     );
-    //   }),
-    // );
+    sandbox.assert.calledOnceWithMatch(
+      schedulerStub,
+      sandbox.match(function (command) {
+        const c = command.input;
+        return (
+          command instanceof CreateScheduleCommand &&
+          c.Name == `ScheduleBooking_${classId}`
+        );
+      }),
+    );
   });
 
   function stubSecretConfig() {

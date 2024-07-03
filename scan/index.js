@@ -162,9 +162,14 @@ async function scheduleFutureBooking(e) {
     `Booking for class ${e.name} with id=${e.id} should be scheduled on ${e.bookingInfo.bookingOpensOn}`,
   );
 
+  let bookingOpensOnUTC = new Date(e.bookingInfo.bookingOpensOn)
+    .toISOString()
+    .slice(0, -5);
+
   const schedule = {
     Name: `ScheduleBooking_${e.id}`,
-    ScheduleExpression: `at(${e.bookingInfo.bookingOpensOn})`, //TODO: manage UTC
+    Description: `${e.name}-${e.startDate}`,
+    ScheduleExpression: `at(${bookingOpensOnUTC})`,
     Target: {
       Arn: BOOK_LAMBDA_FUNCTION_ARN,
       RoleArn: EVENT_BRIDGE_SCHEDULER_ROLE_ARN,
