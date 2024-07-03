@@ -21,9 +21,6 @@ describe("Scan classes", function () {
   let schedulerStub;
   let restApiStub;
 
-  //TODO move
-  let classId = uuidv4();
-
   beforeEach(() => {
     // Stub interactions with secrets
     getSecretStub = sandbox.stub(utils, "getSecret");
@@ -62,6 +59,7 @@ describe("Scan classes", function () {
 
   it("It should find a class that can be booked immediately, and publish a ClassBookingAvailable event", async function () {
     // Arrange
+    const classId = uuidv4();
     restApiStub
       .withArgs(
         sandbox.match(function (request) {
@@ -146,6 +144,8 @@ describe("Scan classes", function () {
   });
 
   it("It should find a class that cannot be booked immediately, and schedule a dynamic rule on EventBridge to book it as soon as possible", async function () {
+    // Arrange
+    const classId = uuidv4();
     restApiStub
       .withArgs(
         sandbox.match(function (request) {
