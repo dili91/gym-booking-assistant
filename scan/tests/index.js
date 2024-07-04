@@ -5,6 +5,7 @@ const { v4: uuidv4 } = require("uuid");
 
 var scan = require("../index");
 var utils = require("/opt/nodejs/utils");
+var gymApiClient = require("/opt/nodejs/gymApiClient");
 
 const {
   EventBridgeClient,
@@ -19,7 +20,8 @@ describe("Scan classes", function () {
   let getSecretStub;
   let eventBridgeStub;
   let schedulerStub;
-  let restApiStub;
+  let loginStub;
+  let genericHttpClientStub;
 
   beforeEach(() => {
     // Stub interactions with secrets
@@ -29,8 +31,14 @@ describe("Scan classes", function () {
     // Stub HTTP client
     let httpClientFake = utils.getHttpClient();
     httpClientFake.interceptors.request.handlers = [];
-    restApiStub = sandbox.stub(httpClientFake, "request");
-    restApiStub
+
+    loginStub = sandbox.stub(gymApiClient, "login");
+    loginStub.returns({
+      token: "a-mock-token",
+    });
+
+    genericHttpClientStub = sandbox.stub(httpClientFake, "request");
+    genericHttpClientStub
       .withArgs(
         sandbox.match(function (request) {
           return request.method == "POST" && request.url.endsWith("/Login");
@@ -60,7 +68,7 @@ describe("Scan classes", function () {
   it("It should find a class that can be booked immediately, and publish a ClassBookingAvailable event", async function () {
     // Arrange
     const classId = uuidv4();
-    restApiStub
+    genericHttpClientStub
       .withArgs(
         sandbox.match(function (request) {
           return (
@@ -115,15 +123,10 @@ describe("Scan classes", function () {
     // Assert
     sandbox.assert.callCount(getSecretStub, 5);
 
-    sandbox.assert.calledTwice(restApiStub);
-    sandbox.assert.calledWithMatch(
-      restApiStub,
-      sandbox.match(function (request) {
-        return request.method == "POST" && request.url.endsWith("/Login");
-      }),
-    );
-    sandbox.assert.calledWithMatch(
-      restApiStub,
+    sandbox.assert.calledOnce(genericHttpClientStub);
+    sandbox.assert.calledOnce(loginStub);
+    sandbox.assert.calledOnceWithMatch(
+      genericHttpClientStub,
       sandbox.match(function (request) {
         return request.method == "GET" && request.url.endsWith("/class/search");
       }),
@@ -146,7 +149,7 @@ describe("Scan classes", function () {
   it("It should find a class that cannot be booked immediately, and schedule a dynamic rule on EventBridge to book it as soon as possible", async function () {
     // Arrange
     const classId = uuidv4();
-    restApiStub
+    genericHttpClientStub
       .withArgs(
         sandbox.match(function (request) {
           return (
@@ -190,6 +193,8 @@ describe("Scan classes", function () {
     await scan.handler();
 
     // Assert
+    sandbox.assert.calledOnce(genericHttpClientStub);
+    sandbox.assert.calledOnce(loginStub);
     sandbox.assert.neverCalledWith(
       eventBridgeStub,
       sandbox.match(sandbox.match.instanceOf(PutEventsCommand)),

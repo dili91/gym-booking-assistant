@@ -6,14 +6,14 @@ alias f := format
 alias r := run
 alias t := test
 
-test:
-    mkdir -p /opt/nodejs
-    find "$(pwd -P)/common/nodejs" -name "*.js" -maxdepth 1 -exec ln -s "{}" /opt/nodejs/ ';'
+requirements:
+    sudo mkdir -p /opt/nodejs
+    sudo find "$(pwd -P)/common/nodejs" -name "*.js" -maxdepth 1 -exec ln -s "{}" /opt/nodejs ';'
+
+test: requirements
     cd scan && npm test
     cd common/nodejs && npm test
-run:
-    mkdir -p /opt/nodejs
-    find "$(pwd -P)/common/nodejs" -name "*.js" -maxdepth 1 -exec ln -s "{}" /opt/nodejs/ ';'
+run: requirements
     cd scan && npm run run-local
 
 format: 

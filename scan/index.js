@@ -21,9 +21,11 @@ const lambdaClient = new LambdaClient();
 
 const utils = require("/opt/nodejs/utils");
 const logging = require("/opt/nodejs/logging");
+const gymApiClient = require("/opt/nodejs/gymApiClient");
 
-const CORE_API_BASE_URI = "https://services.mywellness.com";
+//TODO: move into module
 const CALENDAR_API_BASE_URI = "https://calendar.mywellness.com/v2";
+
 const SUBSCRIBED_EVENT_NAMES_TOKENS = ["Cycle"];
 
 const BOOK_LAMBDA_FUNCTION_ARN =
@@ -32,42 +34,18 @@ const EVENT_BRIDGE_SCHEDULER_ROLE_ARN =
   "arn:aws:iam::097176176455:role/EventBridgeSchedulerRole";
 
 exports.handler = async (event) => {
-  const APPLICATION_ID = await utils.getSecret("applicationId");
-  const FACILITY_ID = await utils.getSecret("facilityId");
-  const LOGIN_DOMAIN = await utils.getSecret("loginDomain");
   const LOGIN_USERNAME = await utils.getSecret("loginUsername");
   const LOGIN_PASSWORD = await utils.getSecret("loginPassword");
 
-  const httpClient = utils.getHttpClient();
-
-  // First of all login
-  const loginRequest = {
-    method: "POST",
-    url: `${CORE_API_BASE_URI}/Application/${APPLICATION_ID}/Login`,
-    data: {
-      domain: LOGIN_DOMAIN,
-      keepMeLoggedIn: true,
-      password: LOGIN_PASSWORD,
-      username: LOGIN_USERNAME,
-    },
-  };
-
-  const loginResponse = await httpClient.request(loginRequest);
-
-  if (utils.isResponseError(loginResponse)) {
-    await logging.error(
-      "Unable to login. stopping. Reason: " +
-        JSON.stringify(loginResponse.data),
-    );
-    process.exit(1);
-  }
+  let loginData = await gymApiClient.login(LOGIN_USERNAME, LOGIN_PASSWORD);
 
   // Search all classes that match my criteria of interest
+  const FACILITY_ID = await utils.getSecret("facilityId");
   const searchClassesRequest = {
     method: "GET",
     url: `${CALENDAR_API_BASE_URI}/enduser/class/search`,
     headers: {
-      Authorization: `Bearer ${loginResponse.data.token}`,
+      Authorization: `Bearer ${loginData.token}`,
     },
     params: {
       facilityId: FACILITY_ID,
@@ -79,7 +57,9 @@ exports.handler = async (event) => {
       eventType: "Class",
     },
   };
-  const searchClassesResponse = await httpClient.request(searchClassesRequest);
+  const searchClassesResponse = await utils
+    .getHttpClient()
+    .request(searchClassesRequest);
 
   if (utils.isResponseError(searchClassesResponse)) {
     logging.error("Unable to get classes. stopping");
