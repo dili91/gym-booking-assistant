@@ -1,5 +1,3 @@
-//TODO: review Secret manager and API mocks!
-
 const sandbox = require("sinon").createSandbox();
 const { v4: uuidv4 } = require("uuid");
 
