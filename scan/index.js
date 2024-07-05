@@ -57,7 +57,7 @@ exports.handler = async (event) => {
       eventType: "Class",
     },
   };
-  const searchClassesResponse = await utils
+  const searchClassesResponse = await gymApiClient
     .getHttpClient()
     .request(searchClassesRequest);
 

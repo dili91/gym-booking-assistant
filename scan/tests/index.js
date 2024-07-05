@@ -27,7 +27,7 @@ describe("Scan classes", function () {
     stubSecretConfig();
 
     // Stub HTTP client
-    let httpClientFake = utils.getHttpClient();
+    let httpClientFake = gymApiClient.getHttpClient();
     httpClientFake.interceptors.request.handlers = [];
 
     loginStub = sandbox.stub(gymApiClient, "login");
@@ -50,7 +50,9 @@ describe("Scan classes", function () {
       });
 
     // Stub utils
-    utilsStub = sandbox.stub(utils, "getHttpClient").returns(httpClientFake);
+    utilsStub = sandbox
+      .stub(gymApiClient, "getHttpClient")
+      .returns(httpClientFake);
 
     // Stub for the interactions with AWS EventBridge
     eventBridgeStub = sandbox.stub(EventBridgeClient.prototype, "send");
@@ -119,8 +121,7 @@ describe("Scan classes", function () {
     await scan.handler();
 
     // Assert
-    sandbox.assert.callCount(getSecretStub, 5);
-
+    sandbox.assert.calledThrice(getSecretStub);
     sandbox.assert.calledOnce(genericHttpClientStub);
     sandbox.assert.calledOnce(loginStub);
     sandbox.assert.calledOnceWithMatch(
