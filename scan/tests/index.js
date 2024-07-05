@@ -81,14 +81,60 @@ describe("Scan classes", function () {
         data: [
           {
             id: classId,
-            name: "Cycle burn",
-            isParticipant: false,
-            startDate: "2024-07-03T18:45:00",
-            endDate: "2024-07-03T19:45:00",
+            cannotTrack: false,
+            name: "Cycle Race",
+            room: "Studio Cycle",
+            roomId: "610407c8f03bcd23e39aa1f9",
             hasLayout: true,
+            startDate: "2024-07-07T10:30:00",
+            partitionDate: 20240707,
+            endDate: "2024-07-07T11:30:00",
+            recurrenceStartDate: "2024-07-07T10:30:00",
+            recurrenceEndDate: "2024-07-07T11:30:00",
+            isSingleOccurrence: true,
+            calendarEventType: "Class",
+            eventTypeId: "7f90a46f-517c-4b7c-aecb-37e3d570c7da",
+            staffId: "3689dcae-9fda-4d0f-80ac-4c52eaab9aba",
+            staffUserId: "228a56ed-53ab-48dd-bdf9-6af74fb785fa",
+            assignedTo: "Rossi Mario",
+            facilityName: "Milano Bocconi",
+            facilityId: "b65351c6-02b4-4e62-9d8c-416e17b9b6fe",
+            chainId: "34ba747a-29f2-46bf-b82a-ecefb4db4951",
+            pictureUrl:
+              "https://publicmedia.mywellness.com/physical_activities/images/7ca2347e-aaf7-40c0-82b4-ccf7cf841343.jpg",
+            maxParticipants: 15,
+            isParticipant: false,
+            hasBeenDone: false,
+            metsPerHour: 5,
+            estimatedCalories: 438,
+            estimatedMove: 833,
+            autoLogin: false,
+            tags: [],
+            waitingListPosition: 0,
+            waitingListCounter: 0,
+            isInWaitingList: false,
+            liveEvent: false,
+            autoStartEvent: false,
+            availablePlaces: 4,
+            extData: {},
             bookingInfo: {
+              bookingOpensOn: "2024-07-02T10:30:00+02:00",
+              bookingOpensOnMinutesInAdvance: 7200,
+              priorityBookingMinutesInAdvance: 7200,
+              cancellationMinutesInAdvance: 120,
+              bookingHasWaitingList: true,
+              bookingTimeInAdvanceType: "Hours",
+              bookingTimeInAdvanceValue: 120,
               bookingUserStatus: "CanBook",
+              bookingAvailable: true,
+              dayInAdvanceStartHour: 0,
+              dayInAdvanceStartMinutes: 0,
             },
+            skus: [],
+            actualizedStartDateTime: "2024-07-07T10:30:00",
+            hasPenaltiesOn: false,
+            numberOfParticipants: 11,
+            bookOpenedNotificationReminderEnabled: false,
           },
         ],
       });
@@ -135,11 +181,13 @@ describe("Scan classes", function () {
       eventBridgeStub,
       sandbox.match(function (command) {
         const e = command.input.Entries[0];
+        const eventPayload = JSON.parse(e.Detail);
         return (
           command instanceof PutEventsCommand &&
           e.Source == "GymBookingAssistant.scan" &&
           e.DetailType == "ClassBookingAvailable" &&
-          JSON.parse(e.Detail).class.id == classId
+          eventPayload.id == classId &&
+          eventPayload.bookingInfo.bookingUserStatus == "CanBook"
         );
       }),
     );
@@ -161,15 +209,60 @@ describe("Scan classes", function () {
         data: [
           {
             id: classId,
-            name: "Cycle burn",
-            isParticipant: false,
-            startDate: "2024-07-03T18:45:00",
-            endDate: "2024-07-03T19:45:00",
+            cannotTrack: false,
+            name: "Cycle Race",
+            room: "Studio Cycle",
+            roomId: "610407c8f03bcd23e39aa1f9",
             hasLayout: true,
+            startDate: "2024-07-03T07:15:00",
+            partitionDate: 20240703,
+            endDate: "2024-07-03T08:15:00",
+            recurrenceStartDate: "2024-05-02T07:15:00",
+            recurrenceEndDate: "2025-03-31T08:15:00",
+            isSingleOccurrence: false,
+            calendarEventType: "Class",
+            eventTypeId: "7f90a46f-517c-4b7c-aecb-37e3d570c7da",
+            staffId: "569d7004-10d0-4722-9578-30eeb2bb344b",
+            staffUserId: "881d683e-181b-4094-934f-74c3266d1197",
+            assignedTo: "De Bernardi Simona",
+            facilityName: "Milano Bocconi",
+            facilityId: "b65351c6-02b4-4e62-9d8c-416e17b9b6fe",
+            chainId: "34ba747a-29f2-46bf-b82a-ecefb4db4951",
+            pictureUrl:
+              "https://publicmedia.mywellness.com/physical_activities/images/7ca2347e-aaf7-40c0-82b4-ccf7cf841343.jpg",
+            maxParticipants: 15,
+            isParticipant: false,
+            hasBeenDone: false,
+            metsPerHour: 5,
+            estimatedCalories: 438,
+            estimatedMove: 833,
+            autoLogin: false,
+            tags: [],
+            waitingListPosition: 0,
+            waitingListCounter: 0,
+            isInWaitingList: false,
+            liveEvent: false,
+            autoStartEvent: false,
+            availablePlaces: 0,
+            extData: {},
             bookingInfo: {
+              bookingOpensOn: "2024-06-28T07:15:00+02:00",
+              bookingOpensOnMinutesInAdvance: 7200,
+              priorityBookingMinutesInAdvance: 7200,
+              cancellationMinutesInAdvance: 120,
+              bookingHasWaitingList: true,
+              bookingTimeInAdvanceType: "Hours",
+              bookingTimeInAdvanceValue: 48,
               bookingUserStatus: "WaitingBookingOpensPremium",
-              bookingOpensOn: "2024-07-04T06:45:00+02:00",
+              bookingAvailable: true,
+              dayInAdvanceStartHour: 0,
+              dayInAdvanceStartMinutes: 0,
             },
+            skus: [],
+            actualizedStartDateTime: "2024-07-03T07:15:00",
+            hasPenaltiesOn: false,
+            numberOfParticipants: 13,
+            bookOpenedNotificationReminderEnabled: false,
           },
         ],
       });
@@ -203,9 +296,14 @@ describe("Scan classes", function () {
       schedulerStub,
       sandbox.match(function (command) {
         const c = command.input;
+        const payload = JSON.parse(c.Target.Input);
         return (
           command instanceof CreateScheduleCommand &&
-          c.Name == `ScheduleBooking_${classId}`
+          c.Name == `ScheduleBooking_${classId}` &&
+          c.Target.Arn.startsWith("arn:aws:lambda") &&
+          c.Target.RoleArn.startsWith("arn:aws:iam") &&
+          payload.id == classId &&
+          payload.bookingInfo.bookingUserStatus == "WaitingBookingOpensPremium"
         );
       }),
     );

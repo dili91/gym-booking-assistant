@@ -61,7 +61,7 @@ exports.handler = async (event) => {
     .getHttpClient()
     .request(searchClassesRequest);
 
-  if (utils.isResponseError(searchClassesResponse)) {
+  if (gymApiClient.isResponseError(searchClassesResponse)) {
     logging.error("Unable to get classes. stopping");
     process.exit(1);
   }
@@ -110,15 +110,7 @@ async function publishBookingAvailableEvent(e) {
         Time: new Date(),
         Source: "GymBookingAssistant.scan",
         DetailType: "ClassBookingAvailable",
-        Detail: JSON.stringify({
-          class: {
-            id: e.id,
-            name: e.name,
-            startDate: e.startDate,
-            endDate: e.endDate,
-            needsStation: e.hasLayout,
-          },
-        }),
+        Detail: JSON.stringify(e),
       },
     ],
   };

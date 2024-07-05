@@ -43,13 +43,4 @@ module.exports = {
       return str;
     }
   },
-
-  //TODO: remove
-  isResponseError: (response) => {
-    return (
-      response.status < 200 ||
-      response.status >= 300 ||
-      (response.data != null && response.data.errors != null)
-    );
-  },
 };

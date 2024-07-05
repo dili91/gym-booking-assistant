@@ -31,7 +31,7 @@ module.exports = {
       .getHttpClient()
       .request(loginRequest);
 
-    if (isResponseError(loginResponse)) {
+    if (module.exports.isResponseError(loginResponse)) {
       await logging.error(
         "Unable to login. stopping. Reason: " +
           JSON.stringify(loginResponse.data),
@@ -73,12 +73,12 @@ module.exports = {
 
     return client;
   },
-};
 
-function isResponseError(response) {
-  return (
-    response.status < 200 ||
-    response.status >= 300 ||
-    (response.data != null && response.data.errors != null)
-  );
-}
+  isResponseError: (response) => {
+    return (
+      response.status < 200 ||
+      response.status >= 300 ||
+      (response.data != null && response.data.errors != null)
+    );
+  },
+};

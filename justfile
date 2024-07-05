@@ -3,7 +3,7 @@ set dotenv-load := true
 AWS_REGION := "eu-south-1"
 
 alias f := format
-alias r := run
+alias s := scan-local
 alias t := test
 
 requirements:
@@ -13,7 +13,8 @@ requirements:
 test: requirements
     cd scan && npm test
     cd common/nodejs && npm test
-run: requirements
+
+scan-local: requirements
     cd scan && npm run run-local
 
 format: 
