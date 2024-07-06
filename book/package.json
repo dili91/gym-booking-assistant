@@ -2,10 +2,16 @@
   "name": "book",
   "version": "1.0.0",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
   "author": "",
   "license": "ISC",
-  "description": ""
+  "description": "",
+  "scripts": {
+    "test": "NODE_PATH=../common/nodejs/node_modules mocha tests/**/*.js"
+  },
+  "devDependencies": {
+    "mocha": "^10.6.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-eventbridge": "^3.609.0"
+  }
 }

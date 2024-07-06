@@ -26,33 +26,19 @@ describe("Scan classes", function () {
     getSecretStub = sandbox.stub(utils, "getSecret");
     stubSecretConfig();
 
-    // Stub HTTP client
+    // Stub Gym API client
     let httpClientFake = gymApiClient.getHttpClient();
     httpClientFake.interceptors.request.handlers = [];
+    genericHttpClientStub = sandbox.stub(httpClientFake, "request");
+    utilsStub = sandbox
+      .stub(gymApiClient, "getHttpClient")
+      .returns(httpClientFake);
 
+    // Stub login response
     loginStub = sandbox.stub(gymApiClient, "login");
     loginStub.returns({
       token: "a-mock-token",
     });
-
-    genericHttpClientStub = sandbox.stub(httpClientFake, "request");
-    genericHttpClientStub
-      .withArgs(
-        sandbox.match(function (request) {
-          return request.method == "POST" && request.url.endsWith("/Login");
-        }),
-      )
-      .returns({
-        status: 200,
-        data: {
-          token: "a-mock-token",
-        },
-      });
-
-    // Stub utils
-    utilsStub = sandbox
-      .stub(gymApiClient, "getHttpClient")
-      .returns(httpClientFake);
 
     // Stub for the interactions with AWS EventBridge
     eventBridgeStub = sandbox.stub(EventBridgeClient.prototype, "send");
@@ -168,12 +154,15 @@ describe("Scan classes", function () {
 
     // Assert
     sandbox.assert.calledThrice(getSecretStub);
-    sandbox.assert.calledOnce(genericHttpClientStub);
     sandbox.assert.calledOnce(loginStub);
     sandbox.assert.calledOnceWithMatch(
       genericHttpClientStub,
       sandbox.match(function (request) {
-        return request.method == "GET" && request.url.endsWith("/class/search");
+        return (
+          request.method == "GET" &&
+          request.url.endsWith("/class/search") &&
+          request.headers.Authorization.length > 0
+        );
       }),
     );
 

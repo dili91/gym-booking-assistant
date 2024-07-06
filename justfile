@@ -12,6 +12,7 @@ requirements:
 
 test: requirements
     cd scan && npm test
+    cd book && npm test
     cd common/nodejs && npm test
 
 scan-local: requirements

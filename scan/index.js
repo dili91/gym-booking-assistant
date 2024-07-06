@@ -13,12 +13,6 @@ const {
 } = require("@aws-sdk/client-scheduler");
 const schedulerClient = new SchedulerClient();
 
-const {
-  LambdaClient,
-  AddPermissionCommand,
-} = require("@aws-sdk/client-lambda");
-const lambdaClient = new LambdaClient();
-
 const utils = require("/opt/nodejs/utils");
 const logging = require("/opt/nodejs/logging");
 const gymApiClient = require("/opt/nodejs/gymApiClient");
@@ -34,6 +28,7 @@ const EVENT_BRIDGE_SCHEDULER_ROLE_ARN =
   "arn:aws:iam::097176176455:role/EventBridgeSchedulerRole";
 
 exports.handler = async (event) => {
+  //TODO: can these safely come on event?
   const LOGIN_USERNAME = await utils.getSecret("loginUsername");
   const LOGIN_PASSWORD = await utils.getSecret("loginPassword");
 
@@ -100,6 +95,7 @@ exports.handler = async (event) => {
   }
 };
 
+//TODO: refine event payload
 async function publishBookingAvailableEvent(e) {
   logging.debug(
     `Booking for class ${e.name} with id=${e.id} should happen immediately.`,
@@ -129,6 +125,7 @@ async function publishBookingAvailableEvent(e) {
   }
 }
 
+//TODO: refine event payload
 async function scheduleFutureBooking(e) {
   logging.debug(
     `Booking for class ${e.name} with id=${e.id} should be scheduled on ${e.bookingInfo.bookingOpensOn}`,
