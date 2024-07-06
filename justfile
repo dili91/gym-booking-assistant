@@ -21,7 +21,7 @@ scan-local: requirements
 format: 
     npx prettier . --write
 
-deploy-layer:
+deploy-common-layer:
     cd ./common && zip -r lambda_layer.zip .
     aws lambda publish-layer-version \
     --no-cli-pager \
