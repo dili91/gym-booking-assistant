@@ -11,8 +11,10 @@ const gymApiClient = require("/opt/nodejs/gymApiClient");
 const BOOKING_API_BASE_URI = "https://api-exerp.mywellness.com";
 
 exports.handler = async (event) => {
+  const classDetails = event.details;
+
   logging.debug(
-    `Trying to book class with id=${event.id} and partitionDate=${event.partitionDate} ...`,
+    `Received event of type=${event['detail-type']} from source=${event.source} with id=${event.id}.\nTrying to book class with id=${classDetails.id} and partitionDate=${classDetails.partitionDate} ...`,
   );
 
   //TODO: can these safely come on event?
@@ -26,12 +28,12 @@ exports.handler = async (event) => {
 
   const bookClassRequest = {
     method: "POST",
-    url: `${BOOKING_API_BASE_URI}/core/calendarevent/${event.id}/book`,
+    url: `${BOOKING_API_BASE_URI}/core/calendarevent/${classDetails.id}/book`,
     headers: {
       Authorization: `Bearer ${loginData.token}`,
     },
     data: {
-      partitionDate: event.partitionDate,
+      partitionDate: classDetails.partitionDate,
       userId: USER_ID,
     },
   };
@@ -42,10 +44,10 @@ exports.handler = async (event) => {
 
   if (gymApiClient.isResponseError(bookClassResponse)) {
     logging.error(
-      `Unable to book class with id=${event.id} and partitionDate=${event.partitionDate}. Errors=${JSON.stringify(bookClassResponse.data.errors)}`,
+      `Unable to book class with id=${classDetails.id} and partitionDate=${classDetails.partitionDate}. Errors=${JSON.stringify(bookClassResponse.data.errors)}`,
     );
 
-    await publishBookingCompletedEvent(event.id, event.partitionDate, {
+    await publishBookingCompletedEvent(classDetails.id, classDetails.partitionDate, {
       booked: false,
       errors: bookClassResponse.data.errors,
     });
@@ -54,9 +56,9 @@ exports.handler = async (event) => {
   }
 
   logging.debug(
-    `Successfully booked class with id=${event.id} and partitionDate=${event.partitionDate}`,
+    `Successfully booked class with id=${classDetails.id} and partitionDate=${classDetails.partitionDate}`,
   );
-  await publishBookingCompletedEvent(event.id, event.partitionDate, {
+  await publishBookingCompletedEvent(classDetails.id, classDetails.partitionDate, {
     booked: true,
   });
 };

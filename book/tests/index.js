@@ -93,8 +93,13 @@ describe("Book class", function () {
 
     // Act
     await book.handler({
-      id: classId,
-      partitionDate: partitionDate,
+      id: uuidv4(), //event id
+      "detail-type": "ClassBookingAvailable",
+      source:"GymBookingAssistant.scan", 
+      details: {
+        id: classId,
+        partitionDate: partitionDate,
+      }
     });
 
     // Assert
@@ -185,8 +190,13 @@ describe("Book class", function () {
 
     // Act
     await book.handler({
-      id: classId,
-      partitionDate: partitionDate,
+      id: uuidv4(), //event id
+      "detail-type": "ClassBookingAvailable",
+      source:"GymBookingAssistant.scan", 
+      details: {
+        id: classId,
+        partitionDate: partitionDate,
+      }
     });
 
     // Assert
