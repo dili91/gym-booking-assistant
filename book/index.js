@@ -11,7 +11,7 @@ const gymApiClient = require("/opt/nodejs/gymApiClient");
 const BOOKING_API_BASE_URI = "https://api-exerp.mywellness.com";
 
 exports.handler = async (event) => {
-  const classDetails = event.details;
+  const classDetails = event.detail;
 
   logging.debug(
     `Received event of type=${event['detail-type']} from source=${event.source} with id=${event.id}.\nTrying to book class with id=${classDetails.id} and partitionDate=${classDetails.partitionDate} ...`,

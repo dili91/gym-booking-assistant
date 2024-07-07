@@ -96,7 +96,7 @@ describe("Book class", function () {
       id: uuidv4(), //event id
       "detail-type": "ClassBookingAvailable",
       source:"GymBookingAssistant.scan", 
-      details: {
+      detail: {
         id: classId,
         partitionDate: partitionDate,
       }
@@ -193,7 +193,7 @@ describe("Book class", function () {
       id: uuidv4(), //event id
       "detail-type": "ClassBookingAvailable",
       source:"GymBookingAssistant.scan", 
-      details: {
+      detail: {
         id: classId,
         partitionDate: partitionDate,
       }
