@@ -20,8 +20,9 @@ const gymApiClient = require("/opt/nodejs/gymApiClient");
 //TODO: move into module
 const CALENDAR_API_BASE_URI = "https://calendar.mywellness.com/v2";
 
-const SUBSCRIBED_EVENT_NAMES_TOKENS = ["Cycle"];
+const SUBSCRIBED_EVENT_NAMES_TOKENS = ["Cycle Spirit"];
 
+//TODO: Cleanup
 const BOOK_LAMBDA_FUNCTION_ARN =
   "arn:aws:lambda:eu-south-1:097176176455:function:GymBookingAssistant_Book";
 const EVENT_BRIDGE_SCHEDULER_ROLE_ARN =
@@ -81,6 +82,7 @@ exports.handler = async (event) => {
   for (const e of filteredEvents) {
     switch (e.bookingInfo.bookingUserStatus) {
       case "CanBook":
+        // TODO: check cancellationMinutesInAdvance. I should avoid booking for classes than can't be un-booked to avoid penalties!
         await publishBookingAvailableEvent(e);
         break;
       case "WaitingBookingOpensPremium":
@@ -135,14 +137,34 @@ async function scheduleFutureBooking(e) {
     .toISOString()
     .slice(0, -5);
 
-  const schedule = {
+  //TODO cleanup  
+  // const schedule = {
+  //   Name: `ScheduleBooking_${e.id}`,
+  //   Description: `${e.name}-${e.startDate}`,
+  //   ScheduleExpression: `at(${bookingOpensOnUTC})`,
+  //   //TODO: change target to be an EventBridge event
+  //   Target: {
+  //     Arn: BOOK_LAMBDA_FUNCTION_ARN,
+  //     RoleArn: EVENT_BRIDGE_SCHEDULER_ROLE_ARN,
+  //     Input: JSON.stringify(e),
+  //   },
+  //   ActionAfterCompletion: ActionAfterCompletion.DELETE,
+  //   FlexibleTimeWindow: {
+  //     Mode: FlexibleTimeWindowMode.OFF,
+  //   },
+  // };
+
+  const scheduleRequest = {
     Name: `ScheduleBooking_${e.id}`,
     Description: `${e.name}-${e.startDate}`,
     ScheduleExpression: `at(${bookingOpensOnUTC})`,
     Target: {
-      Arn: BOOK_LAMBDA_FUNCTION_ARN,
-      RoleArn: EVENT_BRIDGE_SCHEDULER_ROLE_ARN,
-      Input: JSON.stringify(e),
+      // TODO: Arn and RoleArn are required, but what should be used?
+      EventBridgeParameters: {
+        Source: "GymBookingAssistant.scan",
+        DetailType: "ClassBookingAvailable",
+      },
+      Input: JSON.stringify(e)
     },
     ActionAfterCompletion: ActionAfterCompletion.DELETE,
     FlexibleTimeWindow: {
@@ -151,7 +173,7 @@ async function scheduleFutureBooking(e) {
   };
 
   const createScheduleResponse = await schedulerClient.send(
-    new CreateScheduleCommand(schedule),
+    new CreateScheduleCommand(scheduleRequest),
   );
 
   if (createScheduleResponse["$metadata"].httpStatusCode != 200) {
