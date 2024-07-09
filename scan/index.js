@@ -1,4 +1,6 @@
+//TODO: can I just use moment?
 const dateFormatter = require("date-fns-tz");
+
 const {
   EventBridgeClient,
   PutEventsCommand,
@@ -82,7 +84,6 @@ exports.handler = async (event) => {
   for (const e of filteredEvents) {
     switch (e.bookingInfo.bookingUserStatus) {
       case "CanBook":
-        // TODO: check cancellationMinutesInAdvance. I should avoid booking for classes than can't be un-booked to avoid penalties!
         await publishBookingAvailableEvent(e);
         break;
       case "WaitingBookingOpensPremium":
@@ -137,7 +138,7 @@ async function scheduleFutureBooking(e) {
     .toISOString()
     .slice(0, -5);
 
-  //TODO cleanup  
+  //TODO cleanup
   // const schedule = {
   //   Name: `ScheduleBooking_${e.id}`,
   //   Description: `${e.name}-${e.startDate}`,
@@ -164,7 +165,7 @@ async function scheduleFutureBooking(e) {
         Source: "GymBookingAssistant.scan",
         DetailType: "ClassBookingAvailable",
       },
-      Input: JSON.stringify(e)
+      Input: JSON.stringify(e),
     },
     ActionAfterCompletion: ActionAfterCompletion.DELETE,
     FlexibleTimeWindow: {

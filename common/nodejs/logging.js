@@ -5,7 +5,7 @@ const error = async (msg) => {
 };
 
 const warn = async (msg) => {
-  console.warn((await chalk.bold).yellow(msg));
+  console.warn((await chalk).bold.yellow(msg));
 };
 
 const info = async (msg) => {

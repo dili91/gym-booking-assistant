@@ -3,7 +3,10 @@ const {
   SecretsManagerClient,
 } = require("@aws-sdk/client-secrets-manager");
 
+const moment = require("moment-timezone");
 const secretsManagerClient = new SecretsManagerClient();
+
+const CET_TIMEZONE = "Europe/Rome";
 
 // Holds the JSON secret returned by the AWS secret manager
 let secret = null;
@@ -42,5 +45,18 @@ module.exports = {
     } else {
       return str;
     }
+  },
+
+  stringToDateCET: (dateStr) => {
+    const timezoneRegex = /Z|[+-]\d{2}:\d{2}|[+-]\d{4}|[A-Z]{3}/;
+    if (timezoneRegex.test(dateStr)) {
+      throw Error("Input date string should not contain timezone info!");
+    }
+
+    return moment.tz(dateStr, CET_TIMEZONE);
+  },
+
+  nowCET: () => {
+    return moment.tz(CET_TIMEZONE);
   },
 };

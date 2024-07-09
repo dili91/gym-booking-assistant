@@ -1,6 +1,6 @@
 const sandbox = require("sinon").createSandbox();
 const { v4: uuidv4 } = require("uuid");
-const moment = require('moment-timezone');
+const moment = require("moment-timezone");
 
 var scan = require("../index");
 var utils = require("/opt/nodejs/utils");
@@ -52,15 +52,11 @@ describe("Scan classes", function () {
     sandbox.restore();
   });
 
-  it("It should find a class that can be booked immediately, and publish a ClassBookingAvailable event", async function () {
+  it("It should publish ClassBookingAvailable event for an immediate booking", async function () {
     // Arrange
     const classId = uuidv4();
 
-    stubSearchClassResponse(
-      classId,
-      "Cycle Spirit",
-      "CanBook"
-    );
+    stubSearchClassResponse(classId, "Cycle Spirit", "CanBook");
 
     eventBridgeStub
       .withArgs(
@@ -119,14 +115,14 @@ describe("Scan classes", function () {
     );
   });
 
-  it("It should find a class that cannot be booked immediately, and schedule a dynamic rule on EventBridge to book it as soon as possible", async function () {
+  it("It should schedule a dynamic rule on EventBridge to book a class as soon as possible", async function () {
     // Arrange
     const classId = uuidv4();
 
     stubSearchClassResponse(
       classId,
       "Cycle Spirit",
-      "WaitingBookingOpensPremium"
+      "WaitingBookingOpensPremium",
     );
 
     schedulerStub
@@ -163,7 +159,8 @@ describe("Scan classes", function () {
           command instanceof CreateScheduleCommand &&
           c.Name == `ScheduleBooking_${classId}` &&
           c.Target.EventBridgeParameters.Source == "GymBookingAssistant.scan" &&
-          c.Target.EventBridgeParameters.DetailType == "ClassBookingAvailable" &&
+          c.Target.EventBridgeParameters.DetailType ==
+            "ClassBookingAvailable" &&
           payload.id == classId &&
           payload.bookingInfo.bookingUserStatus == "WaitingBookingOpensPremium"
         );
@@ -181,30 +178,15 @@ describe("Scan classes", function () {
    * @param {*} id id of the class
    * @param {*} name name of the class
    * @param {*} status booking status of the class. One of CanBook, WaitingBookingOpensPremium, CannotBook, others...
-   * @param {*} startDate startDate in CET timezone. No TZ identifiers are expected, and they will be ignored when passed
-   * @param {*} cancellationMinutesInAdvance Represents the limit in minute for cancellations, computed from startDate
    */
-  function stubSearchClassResponse(
-      id,
-      name,
-      status,
-      startDate, 
-      cancellationMinutesInAdvance
-    ){
+  function stubSearchClassResponse(id, name, status) {
     // Parse the date in the specified timezone
     const timeZone = "Europe/Rome"; // CET/CEST
     const dateFormat = "YYYY-MM-DDTHH:mm:ss";
 
-    if(!startDate){
-      startDate = moment.tz(moment(), timeZone).add(1, 'hour').format(dateFormat);
-    }
-
-    if(!cancellationMinutesInAdvance){
-      cancellationMinutesInAdvance = 120;
-    }
-
-    let startDateCET = moment.tz(startDate, timeZone);
-    const endDateCET = startDateCET.clone().add(1, 'hour');
+    const startDate = utils.nowCET().add(1, "hour").format(dateFormat);
+    const startDateCET = utils.stringToDateCET(startDate);
+    const endDateCET = startDateCET.clone().add(1, "hour");
 
     genericHttpClientStub
       .withArgs(
@@ -259,7 +241,7 @@ describe("Scan classes", function () {
               bookingOpensOn: "2024-06-28T07:15:00+02:00",
               bookingOpensOnMinutesInAdvance: 7200,
               priorityBookingMinutesInAdvance: 7200,
-              cancellationMinutesInAdvance: cancellationMinutesInAdvance,
+              cancellationMinutesInAdvance: 120,
               bookingHasWaitingList: true,
               bookingTimeInAdvanceType: "Hours",
               bookingTimeInAdvanceValue: 48,
@@ -280,5 +262,3 @@ describe("Scan classes", function () {
 });
 
 //TODO: test that make sure that only classes that matches my criteria are met
-
-//TODO: test that makes sure that we don't book if booking can't be cancelled soon after: this is to avoid penalties

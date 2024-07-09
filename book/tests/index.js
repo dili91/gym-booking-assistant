@@ -45,14 +45,15 @@ describe("Book class", function () {
 
   it("It should book a class and publish a ClassBookingCompleted event with a booked=true flag", async function () {
     // Arrange
-    const classId = uuidv4();
-    const partitionDate = 20240707;
+    const classBookingAvailableEvent = createTestClassBookingAvailableEvent();
     genericHttpClientStub
       .withArgs(
         sandbox.match(function (request) {
           return (
             request.method == "POST" &&
-            request.url.endsWith(`/core/calendarevent/${classId}/book`) &&
+            request.url.endsWith(
+              `/core/calendarevent/${classBookingAvailableEvent.detail.id}/book`,
+            ) &&
             request.headers.Authorization.length > 0
           );
         }),
@@ -92,15 +93,7 @@ describe("Book class", function () {
       });
 
     // Act
-    await book.handler({
-      id: uuidv4(), //event id
-      "detail-type": "ClassBookingAvailable",
-      source:"GymBookingAssistant.scan", 
-      detail: {
-        id: classId,
-        partitionDate: partitionDate,
-      }
-    });
+    await book.handler(classBookingAvailableEvent);
 
     // Assert
     sandbox.assert.calledThrice(getSecretStub);
@@ -111,9 +104,12 @@ describe("Book class", function () {
       sandbox.match(function (request) {
         return (
           request.method == "POST" &&
-          request.url.endsWith(`/core/calendarevent/${classId}/book`) &&
+          request.url.endsWith(
+            `/core/calendarevent/${classBookingAvailableEvent.detail.id}/book`,
+          ) &&
           request.headers.Authorization.length > 0 &&
-          request.data.partitionDate == partitionDate
+          request.data.partitionDate ==
+            classBookingAvailableEvent.detail.partitionDate
         );
       }),
     );
@@ -128,17 +124,52 @@ describe("Book class", function () {
           e.Source == "GymBookingAssistant.book" &&
           e.DetailType == "ClassBookingCompleted" &&
           eventPayload.result.booked == true &&
-          eventPayload.partitionDate == partitionDate &&
-          eventPayload.classId == classId
+          eventPayload.partitionDate ==
+            classBookingAvailableEvent.detail.partitionDate &&
+          eventPayload.classId == classBookingAvailableEvent.detail.id
         );
       }),
     );
   });
 
+  it("It should reject booking a class if its status is different from CanBook", async function () {
+    // Arrange
+    const classBookingAvailableEvent = createTestClassBookingAvailableEvent(
+      utils.nowCET().add(6, "hour"),
+      120,
+      "CannotBook",
+    );
+
+    // Act
+    await book.handler(classBookingAvailableEvent);
+
+    // Assert
+    sandbox.assert.notCalled(getSecretStub);
+    sandbox.assert.notCalled(loginStub);
+    sandbox.assert.notCalled(genericHttpClientStub);
+    sandbox.assert.notCalled(eventBridgeStub);
+  });
+
+  it("It should reject booking a class if there's not enough time to un-book it", async function () {
+    // Arrange
+    const classBookingAvailableEvent = createTestClassBookingAvailableEvent(
+      utils.nowCET().add(1, "hour"),
+      120,
+    );
+
+    // Act
+    await book.handler(classBookingAvailableEvent);
+
+    // Assert
+    sandbox.assert.notCalled(getSecretStub);
+    sandbox.assert.notCalled(loginStub);
+    sandbox.assert.notCalled(genericHttpClientStub);
+    sandbox.assert.notCalled(eventBridgeStub);
+  });
+
   it("It should publish a ClassBookingCompleted event with a booked=false flag and an errors array if the class can't be booked", async function () {
     // Arrange
-    const classId = uuidv4();
-    const partitionDate = 20240707;
+    const classBookingAvailableEvent = createTestClassBookingAvailableEvent();
     let tooEarlyBookingError = {
       field: "BookingApiException.TooEarlyToBookParticipantException",
       type: "Validation",
@@ -152,7 +183,9 @@ describe("Book class", function () {
         sandbox.match(function (request) {
           return (
             request.method == "POST" &&
-            request.url.endsWith(`/core/calendarevent/${classId}/book`) &&
+            request.url.endsWith(
+              `/core/calendarevent/${classBookingAvailableEvent.detail.id}/book`,
+            ) &&
             request.headers.Authorization.length > 0
           );
         }),
@@ -189,15 +222,7 @@ describe("Book class", function () {
       });
 
     // Act
-    await book.handler({
-      id: uuidv4(), //event id
-      "detail-type": "ClassBookingAvailable",
-      source:"GymBookingAssistant.scan", 
-      detail: {
-        id: classId,
-        partitionDate: partitionDate,
-      }
-    });
+    await book.handler(classBookingAvailableEvent);
 
     // Assert
     sandbox.assert.calledThrice(getSecretStub);
@@ -208,9 +233,12 @@ describe("Book class", function () {
       sandbox.match(function (request) {
         return (
           request.method == "POST" &&
-          request.url.endsWith(`/core/calendarevent/${classId}/book`) &&
+          request.url.endsWith(
+            `/core/calendarevent/${classBookingAvailableEvent.detail.id}/book`,
+          ) &&
           request.headers.Authorization.length > 0 &&
-          request.data.partitionDate == partitionDate
+          request.data.partitionDate ==
+            classBookingAvailableEvent.detail.partitionDate
         );
       }),
     );
@@ -226,8 +254,9 @@ describe("Book class", function () {
           e.DetailType == "ClassBookingCompleted" &&
           eventPayload.result.booked == false &&
           eventPayload.result.errors[0].field == tooEarlyBookingError.field &&
-          eventPayload.partitionDate == partitionDate &&
-          eventPayload.classId == classId
+          eventPayload.partitionDate ==
+            classBookingAvailableEvent.detail.partitionDate &&
+          eventPayload.classId == classBookingAvailableEvent.detail.id
         );
       }),
     );
@@ -236,5 +265,38 @@ describe("Book class", function () {
   function stubSecretConfig() {
     getSecretStub.withArgs("loginUsername").returns("jdoe@example.com");
     getSecretStub.returns(uuidv4());
+  }
+
+  function createTestClassBookingAvailableEvent(
+    startDateCET,
+    cancellationMinutesInAdvance,
+    bookingStatus,
+  ) {
+    if (!startDateCET) {
+      startDateCET = utils.nowCET().add(6, "hour");
+    }
+
+    if (!cancellationMinutesInAdvance) {
+      cancellationMinutesInAdvance = 120;
+    }
+
+    if (!bookingStatus) {
+      bookingStatus = "CanBook";
+    }
+
+    return {
+      id: uuidv4(), //event id
+      "detail-type": "ClassBookingAvailable",
+      source: "GymBookingAssistant.scan",
+      detail: {
+        id: uuidv4(),
+        partitionDate: startDateCET.format("YYYYMMDD"),
+        startDate: startDateCET.format("YYYY-MM-DDTHH:mm:ss"),
+        bookingInfo: {
+          cancellationMinutesInAdvance: cancellationMinutesInAdvance,
+          bookingUserStatus: bookingStatus,
+        },
+      },
+    };
   }
 });
