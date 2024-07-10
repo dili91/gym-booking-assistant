@@ -3,13 +3,13 @@ const {
   PutEventsCommand,
 } = require("@aws-sdk/client-eventbridge");
 const eventBridgeClient = new EventBridgeClient();
-const moment = require("moment-timezone");
 
 const utils = require("/opt/nodejs/utils");
 const logging = require("/opt/nodejs/logging");
 const gymApiClient = require("/opt/nodejs/gymApiClient");
 
 const BOOKING_API_BASE_URI = "https://api-exerp.mywellness.com";
+const EXTRA_TIME_CANCEL_BOOKING_IN_MINUTES = 60;
 
 exports.handler = async (event) => {
   const classDetails = event.detail;
@@ -18,7 +18,7 @@ exports.handler = async (event) => {
     `Received event of type=${event["detail-type"]} from source=${event.source} with id=${event.id}.\nTrying to book class with id=${classDetails.id} and partitionDate=${classDetails.partitionDate} ...`,
   );
 
-  // Check class booking status. This should never be different from CanBook or WaitingBookingOpensPremium but let's double check
+  // Check class booking status. This should never be different from CanBook or WaitingBookingOpensPremium, but let's double check
   if (
     classDetails.bookingInfo.bookingUserStatus != "CanBook" &&
     classDetails.bookingInfo.bookingUserStatus != "WaitingBookingOpensPremium"
@@ -31,19 +31,20 @@ exports.handler = async (event) => {
 
   // Check cancellationMinutesInAdvance. We should avoid booking for classes than can't be un-booked to avoid penalties!
   const startDateCET = utils.stringToDateCET(classDetails.startDate);
-  const gapFromStartDateInMinutes = startDateCET.diff(
+  const timeToClassStartInMinutes = startDateCET.diff(
     utils.nowCET(),
     "minutes",
   );
 
-  //TODO: add extra time
+  const timeToCancelBookingMinutes =
+    classDetails.bookingInfo.cancellationMinutesInAdvance +
+    EXTRA_TIME_CANCEL_BOOKING_IN_MINUTES;
   const classCanBeCancelled =
-    gapFromStartDateInMinutes >
-    classDetails.bookingInfo.cancellationMinutesInAdvance;
+    timeToClassStartInMinutes > timeToCancelBookingMinutes;
 
   if (!classCanBeCancelled) {
     await logging.warn(
-      `Booking rejected to avoid penalties, because class could not be un-booked. startDate=${startDateCET} gapFromStartDateInMinutes=${gapFromStartDateInMinutes} cancellationMinutesInAdvance=${classDetails.bookingInfo.cancellationMinutesInAdvance}`,
+      `Booking rejected to avoid penalties, because class could not be un-booked. startDate=${startDateCET} timeToClassStartInMinutes=${timeToClassStartInMinutes} timeToCancelBookingMinutes=${timeToCancelBookingMinutes}`,
     );
     return;
   }
