@@ -1,5 +1,6 @@
 //TODO: can I just use moment?
 const dateFormatter = require("date-fns-tz");
+const moment = require("moment-timezone");
 
 const {
   EventBridgeClient,
@@ -23,6 +24,22 @@ const gymApiClient = require("/opt/nodejs/gymApiClient");
 const CALENDAR_API_BASE_URI = "https://calendar.mywellness.com/v2";
 
 const SUBSCRIBED_EVENT_NAMES_TOKENS = ["Cycle Spirit"];
+
+const SEARCH_CRITERIA = {
+  classNames: ["Cycle Spirit"],
+  hourRangesCET: [
+    {
+      start: "08:00:00",
+      end: "10:00:30",
+    },
+    {
+      start: "18:00:00",
+      end: "21:00:00",
+    },
+  ],
+  // 0 Sunday, 6 Saturday
+  days: [1, 2, 3, 4, 5],
+};
 
 //TODO: Cleanup
 const BOOK_LAMBDA_FUNCTION_ARN =
@@ -64,18 +81,42 @@ exports.handler = async (event) => {
     process.exit(1);
   }
 
-  const filteredEvents = searchClassesResponse.data.filter(
-    (e) =>
-      // Include only the events whose names include subscribed tokens
-      SUBSCRIBED_EVENT_NAMES_TOKENS.some((s) =>
-        e.name.toLowerCase().includes(s.toLowerCase()),
-      ) &&
-      // excludes the classes booked already
-      e.isParticipant != true &&
-      // excludes the classes that can't be booked for some reason
-      e.bookingInfo.bookingUserStatus != "CannotBook" &&
-      e.bookingInfo.bookingUserStatus != "BookingClosed",
-  );
+  // It seems not possible to filter classes of interest via an API call. So we need to fetch them first
+  // and retrospectively ignore some of those.
+  const filteredEvents = searchClassesResponse.data
+    .filter(
+      (e) =>
+        // excludes the classes booked already
+        e.isParticipant != true &&
+        // excludes the classes that can't be booked for some reason
+        e.bookingInfo.bookingUserStatus != "CannotBook" &&
+        e.bookingInfo.bookingUserStatus != "BookingClosed",
+    )
+    .filter((e) =>
+      SEARCH_CRITERIA.classNames.some((c) =>
+        e.name.toLowerCase().includes(c.toLowerCase()),
+      ),
+    )
+    .filter((e) =>
+      // Class should be taken in one of the days of interest
+      SEARCH_CRITERIA.days.includes(utils.stringToDateCET(e.startDate).day()),
+    )
+    .filter((e) => {
+      // startDate time should fall in one of the hour ranges
+      const timeFormat = "hh:mm:ss";
+
+      const startDateTime = utils.stringToDateCET(e.startDate);
+      const rangeStartTime = moment(
+        SEARCH_CRITERIA.hourRangesCET[0].start,
+        timeFormat,
+      );
+      const rangeEndTime = moment(
+        SEARCH_CRITERIA.hourRangesCET[0].end,
+        timeFormat,
+      );
+
+      return startDateTime.isBetween(rangeStartTime, rangeEndTime);
+    });
 
   logging.debug(
     `Found ${filteredEvents.length} events of the categories of interest (${SUBSCRIBED_EVENT_NAMES_TOKENS}).`,

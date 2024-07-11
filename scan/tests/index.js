@@ -27,11 +27,13 @@ describe("Scan classes", function () {
     getSecretStub = sandbox.stub(utils, "getSecret");
     stubSecretConfig();
 
+    nowCETStub = sandbox.stub(utils, "nowCET");
+
     // Stub Gym API client
     let httpClientFake = gymApiClient.getHttpClient();
     httpClientFake.interceptors.request.handlers = [];
     genericHttpClientStub = sandbox.stub(httpClientFake, "request");
-    utilsStub = sandbox
+    gymApiClientStub = sandbox
       .stub(gymApiClient, "getHttpClient")
       .returns(httpClientFake);
 
@@ -56,6 +58,8 @@ describe("Scan classes", function () {
     // Arrange
     const classId = uuidv4();
 
+    // nowCET will return 2024-07-11T09:00:00, and so the test utils will build a class startDate 1 hour after
+    nowCETStub.returns(utils.stringToDateCET("2024-07-11T09:00:00"));
     stubSearchClassResponse(classId, "Cycle Spirit", "CanBook");
 
     eventBridgeStub
@@ -119,6 +123,7 @@ describe("Scan classes", function () {
     // Arrange
     const classId = uuidv4();
 
+    nowCETStub.returns(utils.stringToDateCET("2024-07-11T08:00:00"));
     stubSearchClassResponse(
       classId,
       "Cycle Spirit",
@@ -181,12 +186,14 @@ describe("Scan classes", function () {
    */
   function stubSearchClassResponse(id, name, status) {
     // Parse the date in the specified timezone
-    const timeZone = "Europe/Rome"; // CET/CEST
     const dateFormat = "YYYY-MM-DDTHH:mm:ss";
 
-    const startDate = utils.nowCET().add(1, "hour").format(dateFormat);
-    const startDateCET = utils.stringToDateCET(startDate);
-    const endDateCET = startDateCET.clone().add(1, "hour");
+    const startDate = utils.nowCET().add(1, "hour");
+    const startDateStringCET = startDate.format(dateFormat);
+    const endDateStringCET = startDate
+      .clone()
+      .add(1, "hour")
+      .format(dateFormat);
 
     genericHttpClientStub
       .withArgs(
@@ -206,9 +213,9 @@ describe("Scan classes", function () {
             room: "Studio Cycle",
             roomId: "610407c8f03bcd23e39aa1f9",
             hasLayout: true,
-            startDate: startDateCET,
+            startDate: startDateStringCET,
             partitionDate: 20240703,
-            endDate: endDateCET,
+            endDate: endDateStringCET,
             recurrenceStartDate: "2024-05-02T07:15:00",
             recurrenceEndDate: "2025-03-31T08:15:00",
             isSingleOccurrence: false,

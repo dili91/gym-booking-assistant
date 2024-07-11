@@ -12,6 +12,8 @@ const BOOKING_API_BASE_URI = "https://api-exerp.mywellness.com";
 const EXTRA_TIME_CANCEL_BOOKING_IN_MINUTES = 60;
 
 exports.handler = async (event) => {
+  //TODO future improvements: anticipate the scheduling a bit and get class detail. Need to poll till BookingInfo.bookingUserStatus is CanBook
+
   const classDetails = event.detail;
 
   logging.debug(
@@ -55,8 +57,6 @@ exports.handler = async (event) => {
   const USER_ID = await utils.getSecret("userId");
 
   let loginData = await gymApiClient.login(LOGIN_USERNAME, LOGIN_PASSWORD);
-
-  //TODO in future: get class detail. Need to poll till BookingInfo.bookingUserStatus is CanBook
 
   const bookClassRequest = {
     method: "POST",
