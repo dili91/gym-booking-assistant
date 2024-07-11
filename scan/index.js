@@ -105,6 +105,7 @@ exports.handler = async (event) => {
       // startDate time should fall in one of the hour ranges
       const timeFormat = "hh:mm:ss";
 
+      //TODO: loop each defined range!
       const startDateTime = utils.stringToDateCET(e.startDate);
       const rangeStartTime = moment(
         SEARCH_CRITERIA.hourRangesCET[0].start,
