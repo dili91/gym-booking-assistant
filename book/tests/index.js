@@ -123,9 +123,10 @@ describe("Book class", function () {
           command instanceof PutEventsCommand &&
           e.Source == "GymBookingAssistant.book" &&
           e.DetailType == "ClassBookingCompleted" &&
-          eventPayload.partitionDate ==
-            classBookingAvailableEvent.detail.partitionDate &&
-          eventPayload.classId == classBookingAvailableEvent.detail.id
+          eventPayload.classStartDate ==
+            classBookingAvailableEvent.detail.startDate &&
+          eventPayload.classId == classBookingAvailableEvent.detail.id &&
+          eventPayload.className == classBookingAvailableEvent.detail.name
         );
       }),
     );
@@ -252,9 +253,10 @@ describe("Book class", function () {
           e.Source == "GymBookingAssistant.book" &&
           e.DetailType == "ClassBookingFailed" &&
           eventPayload.errors[0].field == tooEarlyBookingError.field &&
-          eventPayload.partitionDate ==
-            classBookingAvailableEvent.detail.partitionDate &&
-          eventPayload.classId == classBookingAvailableEvent.detail.id
+          eventPayload.classStartDate ==
+            classBookingAvailableEvent.detail.startDate &&
+          eventPayload.classId == classBookingAvailableEvent.detail.id &&
+          eventPayload.className == classBookingAvailableEvent.detail.name
         );
       }),
     );

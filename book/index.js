@@ -83,7 +83,8 @@ exports.handler = async (event) => {
 
     await publishBookingFailedEvent(
       classDetails.id,
-      classDetails.partitionDate,
+      classDetails.name,
+      classDetails.startDate,
       bookClassResponse.data.errors,
     );
 
@@ -95,7 +96,8 @@ exports.handler = async (event) => {
   );
   await publishBookingCompletedEvent(
     classDetails.id,
-    classDetails.partitionDate,
+    classDetails.name,
+    classDetails.startDate,
   );
 };
 
@@ -105,7 +107,11 @@ exports.handler = async (event) => {
  * @param {*} partitionDate
  * @param {*} result the underlying EventBridge putEvent API response
  */
-async function publishBookingCompletedEvent(classId, partitionDate) {
+async function publishBookingCompletedEvent(
+  classId,
+  className,
+  classStartDate,
+) {
   const classBookingCompletedEvent = {
     Entries: [
       {
@@ -114,7 +120,8 @@ async function publishBookingCompletedEvent(classId, partitionDate) {
         DetailType: "ClassBookingCompleted",
         Detail: JSON.stringify({
           classId: classId,
-          partitionDate: partitionDate,
+          className: className,
+          classStartDate: classStartDate,
         }),
       },
     ],
@@ -129,7 +136,13 @@ async function publishBookingCompletedEvent(classId, partitionDate) {
  * @param {*} partitionDate
  * @param {*} result the underlying EventBridge putEvent API response
  */
-async function publishBookingFailedEvent(classId, partitionDate, errors) {
+async function publishBookingFailedEvent(
+  classId,
+  className,
+  classStartDate,
+  errors,
+) {
+  //TODO: make errors singular
   const classBookingCompletedEvent = {
     Entries: [
       {
@@ -138,7 +151,8 @@ async function publishBookingFailedEvent(classId, partitionDate, errors) {
         DetailType: "ClassBookingFailed",
         Detail: JSON.stringify({
           classId: classId,
-          partitionDate: partitionDate,
+          className: className,
+          classStartDate: classStartDate,
           errors: errors,
         }),
       },
