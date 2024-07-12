@@ -104,19 +104,21 @@ exports.handler = async (event) => {
     .filter((e) => {
       // startDate time should fall in one of the hour ranges
       const timeFormat = "hh:mm:ss";
+      // this parses the class start timestamp in $timeFormat
+      const classStartDateTime = utils
+        .stringToDateCET(e.startDate)
+        .format(timeFormat);
+      // this one builds a new date attaching the above time portion to today's date portion
+      // this makes sure that when comparing timestamps results are not spoiled by different days
+      const adjustedClassStartDate = moment(classStartDateTime, timeFormat);
 
-      //TODO: loop each defined range!
-      const startDateTime = utils.stringToDateCET(e.startDate);
-      const rangeStartTime = moment(
-        SEARCH_CRITERIA.hourRangesCET[0].start,
-        timeFormat,
-      );
-      const rangeEndTime = moment(
-        SEARCH_CRITERIA.hourRangesCET[0].end,
-        timeFormat,
-      );
+      // this returns true if the class' startDateTime if there's at least a match
+      return SEARCH_CRITERIA.hourRangesCET.some((hr) => {
+        const rangeStartTime = moment(hr.start, timeFormat);
+        const rangeEndTime = moment(hr.end, timeFormat);
 
-      return startDateTime.isBetween(rangeStartTime, rangeEndTime);
+        return adjustedClassStartDate.isBetween(rangeStartTime, rangeEndTime);
+      });
     });
 
   logging.debug(
