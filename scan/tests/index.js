@@ -78,13 +78,11 @@ describe("Scan classes", function () {
     async function (value) {
       // Arrange
       const classId = uuidv4();
-      nowCETStub.returns(utils.stringToDateCET(value.nowCET));
-      stubSearchClassResponse(
-        classId,
-        "Cycle Spirit",
-        "CanBook",
-        utils.stringToDateCET(value.classStartDate),
-      );
+      const nowCET = utils.stringToDateCET(value.nowCET);
+      const startDateCET = utils.stringToDateCET(value.classStartDate);
+
+      nowCETStub.returns(nowCET);
+      stubSearchClassResponse(classId, "Cycle Spirit", "CanBook", startDateCET);
       eventBridgeStub.returns({
         $metadata: {
           httpStatusCode: 200,
@@ -103,7 +101,8 @@ describe("Scan classes", function () {
           return (
             request.method == "GET" &&
             request.url.endsWith("/class/search") &&
-            request.headers.Authorization.length > 0
+            request.headers.Authorization.length > 0 &&
+            request.params.fromDate == nowCET.format("yyyyMMDD")
           );
         }),
       );
@@ -139,13 +138,11 @@ describe("Scan classes", function () {
     async function (value) {
       // Arrange
       const classId = uuidv4();
-      nowCETStub.returns(utils.stringToDateCET(value.nowCET));
-      stubSearchClassResponse(
-        classId,
-        "Cycle Spirit",
-        "CanBook",
-        utils.stringToDateCET(value.classStartDate),
-      );
+      const nowCET = utils.stringToDateCET(value.nowCET);
+      const startDateCET = utils.stringToDateCET(value.classStartDate);
+      nowCETStub.returns(nowCET);
+
+      stubSearchClassResponse(classId, "Cycle Spirit", "CanBook", startDateCET);
       eventBridgeStub.returns({
         $metadata: {
           httpStatusCode: 200,
@@ -164,7 +161,8 @@ describe("Scan classes", function () {
           return (
             request.method == "GET" &&
             request.url.endsWith("/class/search") &&
-            request.headers.Authorization.length > 0
+            request.headers.Authorization.length > 0 &&
+            request.params.fromDate == nowCET.format("yyyyMMDD")
           );
         }),
       );

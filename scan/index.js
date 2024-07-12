@@ -1,5 +1,3 @@
-//TODO: can I just use moment?
-const dateFormatter = require("date-fns-tz");
 const moment = require("moment-timezone");
 
 const {
@@ -41,12 +39,6 @@ const SEARCH_CRITERIA = {
   days: [1, 2, 3, 4, 5],
 };
 
-//TODO: Cleanup
-const BOOK_LAMBDA_FUNCTION_ARN =
-  "arn:aws:lambda:eu-south-1:097176176455:function:GymBookingAssistant_Book";
-const EVENT_BRIDGE_SCHEDULER_ROLE_ARN =
-  "arn:aws:iam::097176176455:role/EventBridgeSchedulerRole";
-
 exports.handler = async (event) => {
   //TODO: can these safely come on event?
   const LOGIN_USERNAME = await utils.getSecret("loginUsername");
@@ -64,11 +56,12 @@ exports.handler = async (event) => {
     },
     params: {
       facilityId: FACILITY_ID,
-      fromDate: dateFormatter.formatInTimeZone(
-        new Date(),
-        "Europe/Rome",
-        "yyyyMMdd",
-      ),
+      // fromDate: dateFormatter.formatInTimeZone(
+      //   new Date(),
+      //   "Europe/Rome",
+      //   "yyyyMMDD",
+      // ),
+      fromDate: utils.nowCET().format("yyyyMMDD"),
       eventType: "Class",
     },
   };
