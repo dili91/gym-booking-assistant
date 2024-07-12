@@ -7,8 +7,8 @@ alias s := scan-local
 alias t := test
 
 requirements:
-    sudo mkdir -p /opt/nodejs
-    sudo find "$(pwd -P)/common/nodejs" -name "*.js" -maxdepth 1 -exec ln -s "{}" /opt/nodejs ';'
+    mkdir -p /opt/nodejs
+    find "$(pwd -P)/common/nodejs" -name "*.js" -maxdepth 1 -exec ln -s "{}" /opt/nodejs ';'
 
 test: requirements
     cd scan && npm test

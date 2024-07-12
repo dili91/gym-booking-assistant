@@ -281,9 +281,8 @@ describe("Scan classes", function () {
         return (
           command instanceof CreateScheduleCommand &&
           c.Name == `ScheduleBooking_${classId}` &&
-          c.Target.EventBridgeParameters.Source == "GymBookingAssistant.scan" &&
-          c.Target.EventBridgeParameters.DetailType ==
-            "ClassBookingAvailable" &&
+          c.Target.Source == "GymBookingAssistant.scan" &&
+          c.Target.DetailType == "ClassBookingAvailable" &&
           payload.id == classId &&
           payload.bookingInfo.bookingUserStatus == "WaitingBookingOpensPremium"
         );

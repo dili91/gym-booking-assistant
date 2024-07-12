@@ -117,9 +117,10 @@ exports.handler = async (event) => {
         const rangeStartTime = moment(hr.start, timeFormat);
         const rangeEndTime = moment(hr.end, timeFormat);
 
-        console.log(
-          `${adjustedClassStartDate} | ${rangeStartTime} - ${rangeEndTime} -> ${adjustedClassStartDate.isBetween(rangeStartTime, rangeEndTime)}`,
-        );
+        //TODO: cleanup
+        // console.log(
+        //   `${adjustedClassStartDate} | ${rangeStartTime} - ${rangeEndTime} -> ${adjustedClassStartDate.isBetween(rangeStartTime, rangeEndTime)}`,
+        // );
 
         return adjustedClassStartDate.isBetween(rangeStartTime, rangeEndTime);
       });
@@ -186,33 +187,16 @@ async function scheduleFutureBooking(e) {
     .toISOString()
     .slice(0, -5);
 
-  //TODO cleanup
-  // const schedule = {
-  //   Name: `ScheduleBooking_${e.id}`,
-  //   Description: `${e.name}-${e.startDate}`,
-  //   ScheduleExpression: `at(${bookingOpensOnUTC})`,
-  //   //TODO: change target to be an EventBridge event
-  //   Target: {
-  //     Arn: BOOK_LAMBDA_FUNCTION_ARN,
-  //     RoleArn: EVENT_BRIDGE_SCHEDULER_ROLE_ARN,
-  //     Input: JSON.stringify(e),
-  //   },
-  //   ActionAfterCompletion: ActionAfterCompletion.DELETE,
-  //   FlexibleTimeWindow: {
-  //     Mode: FlexibleTimeWindowMode.OFF,
-  //   },
-  // };
-
   const scheduleRequest = {
     Name: `ScheduleBooking_${e.id}`,
-    Description: `${e.name}-${e.startDate}`,
+    Description: `Class: ${e.name} - Starts at: ${e.startDate}`,
     ScheduleExpression: `at(${bookingOpensOnUTC})`,
     Target: {
-      // TODO: Arn and RoleArn are required, but what should be used?
-      EventBridgeParameters: {
-        Source: "GymBookingAssistant.scan",
-        DetailType: "ClassBookingAvailable",
-      },
+      Arn: "arn:aws:events:eu-south-1:097176176455:event-bus/default",
+      RoleArn:
+        "arn:aws:iam::097176176455:role/service-role/GymBookingAssistantEventBridgeRole",
+      Source: "GymBookingAssistant.scan",
+      DetailType: "ClassBookingAvailable",
       Input: JSON.stringify(e),
     },
     ActionAfterCompletion: ActionAfterCompletion.DELETE,
