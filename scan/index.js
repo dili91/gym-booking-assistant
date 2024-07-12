@@ -103,7 +103,7 @@ exports.handler = async (event) => {
     )
     .filter((e) => {
       // startDate time should fall in one of the hour ranges
-      const timeFormat = "hh:mm:ss";
+      const timeFormat = "HH:mm:ss";
       // this parses the class start timestamp in $timeFormat
       const classStartDateTime = utils
         .stringToDateCET(e.startDate)
@@ -116,6 +116,10 @@ exports.handler = async (event) => {
       return SEARCH_CRITERIA.hourRangesCET.some((hr) => {
         const rangeStartTime = moment(hr.start, timeFormat);
         const rangeEndTime = moment(hr.end, timeFormat);
+
+        console.log(
+          `${adjustedClassStartDate} | ${rangeStartTime} - ${rangeEndTime} -> ${adjustedClassStartDate.isBetween(rangeStartTime, rangeEndTime)}`,
+        );
 
         return adjustedClassStartDate.isBetween(rangeStartTime, rangeEndTime);
       });

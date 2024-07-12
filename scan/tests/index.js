@@ -1,6 +1,6 @@
 const sandbox = require("sinon").createSandbox();
 const { v4: uuidv4 } = require("uuid");
-const moment = require("moment-timezone");
+var itParam = require("mocha-param");
 
 var scan = require("../index");
 var utils = require("/opt/nodejs/utils");
@@ -53,6 +53,124 @@ describe("Scan classes", function () {
   afterEach(() => {
     sandbox.restore();
   });
+
+  itParam(
+    "It should book a class starting at ${value.classStartDate} as matching configured search criteria",
+    [
+      //nowCET makes the test stable over time
+      {
+        nowCET: "2024-07-11T08:00:00",
+        classStartDate: "2024-07-11T09:00:00", // match morning range (Thursday, same day of now)
+      },
+      {
+        nowCET: "2024-07-11T08:00:00",
+        classStartDate: "2024-07-15T09:00:00", // match morning range (Monday)
+      },
+      {
+        nowCET: "2024-07-11T10:00:00",
+        classStartDate: "2024-07-12T18:15:00", // match evening range (Friday)
+      },
+      {
+        nowCET: "2024-07-11T10:00:00",
+        classStartDate: "2024-07-12T18:00:01", // match evening range (Friday). Note that the isBetween function is non inclusive!
+      },
+    ],
+    async function (value) {
+      // Arrange
+      const classId = uuidv4();
+      nowCETStub.returns(utils.stringToDateCET(value.nowCET));
+      stubSearchClassResponse(
+        classId,
+        "Cycle Spirit",
+        "CanBook",
+        utils.stringToDateCET(value.classStartDate),
+      );
+      eventBridgeStub.returns({
+        $metadata: {
+          httpStatusCode: 200,
+        },
+      });
+
+      // Act
+      await scan.handler();
+
+      // Assert
+      sandbox.assert.calledThrice(getSecretStub);
+      sandbox.assert.calledOnce(loginStub);
+      sandbox.assert.calledOnceWithMatch(
+        genericHttpClientStub,
+        sandbox.match(function (request) {
+          return (
+            request.method == "GET" &&
+            request.url.endsWith("/class/search") &&
+            request.headers.Authorization.length > 0
+          );
+        }),
+      );
+      sandbox.assert.calledOnce(eventBridgeStub);
+    },
+  );
+
+  itParam(
+    "It should not book a class starting at ${value.classStartDate} because not matching configured search criteria",
+    [
+      //nowCET makes the test stable over time
+      {
+        nowCET: "2024-07-11T08:00:00",
+        classStartDate: "2024-07-14T09:00:00", // Does not match because happening during the weekend
+      },
+      {
+        nowCET: "2024-07-11T08:00:00",
+        classStartDate: "2024-07-15T07:00:00", // Too early
+      },
+      {
+        nowCET: "2024-07-11T10:00:00",
+        classStartDate: "2024-07-12T15:15:00", // During core working hours early
+      },
+      {
+        nowCET: "2024-07-11T10:00:00",
+        classStartDate: "2024-07-12T21:15:00", // Too late
+      },
+      {
+        nowCET: "2024-07-11T08:00:00",
+        classStartDate: "2024-07-11T08:00:00", // Too early: the isBetween function is non inclusive!
+      },
+    ],
+    async function (value) {
+      // Arrange
+      const classId = uuidv4();
+      nowCETStub.returns(utils.stringToDateCET(value.nowCET));
+      stubSearchClassResponse(
+        classId,
+        "Cycle Spirit",
+        "CanBook",
+        utils.stringToDateCET(value.classStartDate),
+      );
+      eventBridgeStub.returns({
+        $metadata: {
+          httpStatusCode: 200,
+        },
+      });
+
+      // Act
+      await scan.handler();
+
+      // Assert
+      sandbox.assert.calledThrice(getSecretStub);
+      sandbox.assert.calledOnce(loginStub);
+      sandbox.assert.calledOnceWithMatch(
+        genericHttpClientStub,
+        sandbox.match(function (request) {
+          return (
+            request.method == "GET" &&
+            request.url.endsWith("/class/search") &&
+            request.headers.Authorization.length > 0
+          );
+        }),
+      );
+      sandbox.assert.notCalled(eventBridgeStub);
+    },
+  );
 
   it("It should publish ClassBookingAvailable event for an immediate booking", async function () {
     // Arrange
@@ -183,12 +301,16 @@ describe("Scan classes", function () {
    * @param {*} id id of the class
    * @param {*} name name of the class
    * @param {*} status booking status of the class. One of CanBook, WaitingBookingOpensPremium, CannotBook, others...
+   * @param {*} startDate the startDate of the class in CET format. must be a Moment date
    */
-  function stubSearchClassResponse(id, name, status) {
+  function stubSearchClassResponse(id, name, status, startDate) {
     // Parse the date in the specified timezone
     const dateFormat = "YYYY-MM-DDTHH:mm:ss";
 
-    const startDate = utils.nowCET().add(1, "hour");
+    if (!startDate) {
+      startDate = utils.nowCET().add(1, "hour");
+    }
+
     const startDateStringCET = startDate.format(dateFormat);
     const endDateStringCET = startDate
       .clone()
