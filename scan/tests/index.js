@@ -389,5 +389,3 @@ describe("Scan classes", function () {
       });
   }
 });
-
-//TODO: test that make sure that only classes that matches my criteria are met
