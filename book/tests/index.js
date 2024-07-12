@@ -123,7 +123,6 @@ describe("Book class", function () {
           command instanceof PutEventsCommand &&
           e.Source == "GymBookingAssistant.book" &&
           e.DetailType == "ClassBookingCompleted" &&
-          eventPayload.result.booked == true &&
           eventPayload.partitionDate ==
             classBookingAvailableEvent.detail.partitionDate &&
           eventPayload.classId == classBookingAvailableEvent.detail.id
@@ -167,7 +166,7 @@ describe("Book class", function () {
     sandbox.assert.notCalled(eventBridgeStub);
   });
 
-  it("It should publish a ClassBookingCompleted event with a booked=false flag and an errors array if the class can't be booked", async function () {
+  it("It should publish a ClassBookingFailed event with a booked=false flag and an errors array if the class can't be booked", async function () {
     // Arrange
     const classBookingAvailableEvent = createTestClassBookingAvailableEvent();
     let tooEarlyBookingError = {
@@ -204,7 +203,7 @@ describe("Book class", function () {
             const e = value.input.Entries[0];
             return (
               e.Source == "GymBookingAssistant.book" &&
-              e.DetailType == "ClassBookingCompleted"
+              e.DetailType == "ClassBookingFailed"
             );
           }),
         ),
@@ -251,9 +250,8 @@ describe("Book class", function () {
         return (
           command instanceof PutEventsCommand &&
           e.Source == "GymBookingAssistant.book" &&
-          e.DetailType == "ClassBookingCompleted" &&
-          eventPayload.result.booked == false &&
-          eventPayload.result.errors[0].field == tooEarlyBookingError.field &&
+          e.DetailType == "ClassBookingFailed" &&
+          eventPayload.errors[0].field == tooEarlyBookingError.field &&
           eventPayload.partitionDate ==
             classBookingAvailableEvent.detail.partitionDate &&
           eventPayload.classId == classBookingAvailableEvent.detail.id

@@ -48,6 +48,8 @@ exports.handler = async (event) => {
     await logging.warn(
       `Booking rejected to avoid penalties, because class could not be un-booked. startDate=${startDateCET} timeToClassStartInMinutes=${timeToClassStartInMinutes} timeToCancelBookingMinutes=${timeToCancelBookingMinutes}`,
     );
+
+    //TODO: improve the definition of BookingFailed to cover both validation and external API errors, and then send those messages also in these cases
     return;
   }
 
@@ -79,13 +81,10 @@ exports.handler = async (event) => {
       `Unable to book class with id=${classDetails.id} and partitionDate=${classDetails.partitionDate}. Errors=${JSON.stringify(bookClassResponse.data.errors)}`,
     );
 
-    await publishBookingCompletedEvent(
+    await publishBookingFailedEvent(
       classDetails.id,
       classDetails.partitionDate,
-      {
-        booked: false,
-        errors: bookClassResponse.data.errors,
-      },
+      bookClassResponse.data.errors,
     );
 
     return;
@@ -97,13 +96,16 @@ exports.handler = async (event) => {
   await publishBookingCompletedEvent(
     classDetails.id,
     classDetails.partitionDate,
-    {
-      booked: true,
-    },
   );
 };
 
-async function publishBookingCompletedEvent(classId, partitionDate, result) {
+/**
+ * Used to send an event represent a successful booking
+ * @param {*} classId
+ * @param {*} partitionDate
+ * @param {*} result the underlying EventBridge putEvent API response
+ */
+async function publishBookingCompletedEvent(classId, partitionDate) {
   const classBookingCompletedEvent = {
     Entries: [
       {
@@ -113,14 +115,47 @@ async function publishBookingCompletedEvent(classId, partitionDate, result) {
         Detail: JSON.stringify({
           classId: classId,
           partitionDate: partitionDate,
-          result: result,
         }),
       },
     ],
   };
 
+  return await putEvent(classBookingCompletedEvent);
+}
+
+/**
+ * Used to send an event represent a failed booking
+ * @param {*} classId
+ * @param {*} partitionDate
+ * @param {*} result the underlying EventBridge putEvent API response
+ */
+async function publishBookingFailedEvent(classId, partitionDate, errors) {
+  const classBookingCompletedEvent = {
+    Entries: [
+      {
+        Time: new Date(),
+        Source: "GymBookingAssistant.book",
+        DetailType: "ClassBookingFailed",
+        Detail: JSON.stringify({
+          classId: classId,
+          partitionDate: partitionDate,
+          errors: errors,
+        }),
+      },
+    ],
+  };
+
+  return await putEvent(classBookingCompletedEvent);
+}
+
+/**
+ * Internal utility used to put an event on EventBridge. Used for both successful and failed bookings
+ * @param {} event the event to send
+ * @returns the putEvent API response
+ */
+async function putEvent(event) {
   const putEventResponse = await eventBridgeClient.send(
-    new PutEventsCommand(classBookingCompletedEvent),
+    new PutEventsCommand(event),
   );
 
   if (
@@ -131,4 +166,5 @@ async function publishBookingCompletedEvent(classId, partitionDate, result) {
       "There were one or more errors while publishing a ClassBookingCompleted event.",
     );
   }
+  return putEventResponse;
 }
