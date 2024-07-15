@@ -21,8 +21,6 @@ const gymApiClient = require("/opt/nodejs/gymApiClient");
 //TODO: move into module
 const CALENDAR_API_BASE_URI = "https://calendar.mywellness.com/v2";
 
-const SUBSCRIBED_EVENT_NAMES_TOKENS = ["Cycle Spirit"];
-
 const SEARCH_CRITERIA = {
   classNames: ["Cycle Spirit"],
   hourRangesCET: [
@@ -56,11 +54,6 @@ exports.handler = async (event) => {
     },
     params: {
       facilityId: FACILITY_ID,
-      // fromDate: dateFormatter.formatInTimeZone(
-      //   new Date(),
-      //   "Europe/Rome",
-      //   "yyyyMMDD",
-      // ),
       fromDate: utils.nowCET().format("yyyyMMDD"),
       eventType: "Class",
     },
@@ -110,17 +103,12 @@ exports.handler = async (event) => {
         const rangeStartTime = moment(hr.start, timeFormat);
         const rangeEndTime = moment(hr.end, timeFormat);
 
-        //TODO: cleanup
-        // console.log(
-        //   `${adjustedClassStartDate} | ${rangeStartTime} - ${rangeEndTime} -> ${adjustedClassStartDate.isBetween(rangeStartTime, rangeEndTime)}`,
-        // );
-
         return adjustedClassStartDate.isBetween(rangeStartTime, rangeEndTime);
       });
     });
 
   logging.debug(
-    `Found ${filteredEvents.length} events of the categories of interest (${SUBSCRIBED_EVENT_NAMES_TOKENS}).`,
+    `Found ${filteredEvents.length} events of the categories of interest.`,
   );
 
   for (const e of filteredEvents) {
@@ -188,8 +176,10 @@ async function scheduleFutureBooking(e) {
       Arn: "arn:aws:events:eu-south-1:097176176455:event-bus/default",
       RoleArn:
         "arn:aws:iam::097176176455:role/service-role/GymBookingAssistantEventBridgeRole",
-      Source: "GymBookingAssistant.scan",
-      DetailType: "ClassBookingAvailable",
+      EventBridgeParameters: {
+        DetailType: "ClassBookingAvailable",
+        Source: "GymBookingAssistant.scan",
+      },
       Input: JSON.stringify(e),
     },
     ActionAfterCompletion: ActionAfterCompletion.DELETE,
