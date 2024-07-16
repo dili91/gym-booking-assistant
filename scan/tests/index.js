@@ -82,7 +82,7 @@ describe("Scan classes", function () {
       const startDateCET = utils.stringToDateCET(value.classStartDate);
 
       nowCETStub.returns(nowCET);
-      stubSearchClassResponse(classId, "Cycle Spirit", "CanBook", startDateCET);
+      stubSearchClassResponse(classId, "Pilates", "CanBook", startDateCET);
       eventBridgeStub.returns({
         $metadata: {
           httpStatusCode: 200,
@@ -142,7 +142,7 @@ describe("Scan classes", function () {
       const startDateCET = utils.stringToDateCET(value.classStartDate);
       nowCETStub.returns(nowCET);
 
-      stubSearchClassResponse(classId, "Cycle Spirit", "CanBook", startDateCET);
+      stubSearchClassResponse(classId, "Pilates", "CanBook", startDateCET);
       eventBridgeStub.returns({
         $metadata: {
           httpStatusCode: 200,
@@ -176,7 +176,7 @@ describe("Scan classes", function () {
 
     // nowCET will return 2024-07-11T09:00:00, and so the test utils will build a class startDate 1 hour after
     nowCETStub.returns(utils.stringToDateCET("2024-07-11T09:00:00"));
-    stubSearchClassResponse(classId, "Cycle Spirit", "CanBook");
+    stubSearchClassResponse(classId, "Pilates", "CanBook");
 
     eventBridgeStub
       .withArgs(
@@ -242,7 +242,7 @@ describe("Scan classes", function () {
     nowCETStub.returns(utils.stringToDateCET("2024-07-11T08:00:00"));
     stubSearchClassResponse(
       classId,
-      "Cycle Spirit",
+      "Pilates",
       "WaitingBookingOpensPremium",
     );
 

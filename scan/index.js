@@ -22,7 +22,7 @@ const gymApiClient = require("/opt/nodejs/gymApiClient");
 const CALENDAR_API_BASE_URI = "https://calendar.mywellness.com/v2";
 
 const SEARCH_CRITERIA = {
-  classNames: ["Cycle Spirit"],
+  classNames: ["Pilates"],
   hourRangesCET: [
     {
       start: "08:00:00",
@@ -114,9 +114,15 @@ exports.handler = async (event) => {
   for (const e of filteredEvents) {
     switch (e.bookingInfo.bookingUserStatus) {
       case "CanBook":
+        logging.debug(
+          `Booking for class ${e.name} with id=${e.id} should happen immediately.`,
+        );
         await publishBookingAvailableEvent(e);
         break;
       case "WaitingBookingOpensPremium":
+        logging.debug(
+          `Booking for class ${e.name} with id=${e.id} should be scheduled on ${e.bookingInfo.bookingOpensOn}`,
+        );
         await scheduleFutureBooking(e);
         break;
       default:
@@ -130,9 +136,6 @@ exports.handler = async (event) => {
 
 //TODO: refine event payload
 async function publishBookingAvailableEvent(e) {
-  logging.debug(
-    `Booking for class ${e.name} with id=${e.id} should happen immediately.`,
-  );
   const classBookingAvailableEvent = {
     Entries: [
       {
@@ -160,10 +163,6 @@ async function publishBookingAvailableEvent(e) {
 
 //TODO: refine event payload
 async function scheduleFutureBooking(e) {
-  logging.debug(
-    `Booking for class ${e.name} with id=${e.id} should be scheduled on ${e.bookingInfo.bookingOpensOn}`,
-  );
-
   let bookingOpensOnUTC = new Date(e.bookingInfo.bookingOpensOn)
     .toISOString()
     .slice(0, -5);
