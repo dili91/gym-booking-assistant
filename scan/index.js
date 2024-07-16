@@ -38,7 +38,8 @@ const SEARCH_CRITERIA = {
 };
 
 exports.handler = async (event) => {
-  //TODO: can these safely come on event?
+  // TODO: create a schedule on event bridge including a user identifier. 
+  // I should then query a secret that's specific to the user 
   const LOGIN_USERNAME = await utils.getSecret("loginUsername");
   const LOGIN_PASSWORD = await utils.getSecret("loginPassword");
 
