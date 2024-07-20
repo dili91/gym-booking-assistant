@@ -7,13 +7,16 @@ alias s := scan-local
 alias t := test
 
 requirements:
-    mkdir -p /opt/nodejs
-    find "$(pwd -P)/common/nodejs" -name "*.js" -maxdepth 1 -exec ln -s "{}" /opt/nodejs ';'
+    @mkdir -p /opt/nodejs
+    @find "$(pwd -P)/common/nodejs" -name "*.js" -maxdepth 1 -exec ln -s "{}" /opt/nodejs ';'
+    @npm install --prefix common/nodejs
+    @npm install --prefix scan
+    @npm install --prefix book
 
 test: requirements
-    cd scan && npm test
-    cd book && npm test
-    cd common/nodejs && npm test
+    @cd scan && npm test
+    @cd book && npm test
+    @cd common/nodejs && npm test
 
 scan-local: requirements
     cd scan && npm run run-local

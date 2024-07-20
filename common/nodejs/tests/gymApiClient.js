@@ -150,7 +150,6 @@ describe("Gym API client", function () {
         expect(client.request.calledOnce).to.be.true;
         const headers = (await client.request.getCall(0).returnValue).request
           ._header;
-        console.log(headers);
         expect(headers).to.contain(`x-mwapps-client: ${clientId}`);
       });
 
