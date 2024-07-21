@@ -12,14 +12,16 @@ const {
 
 describe("Book class", function () {
   let getSecretStub;
+  let getConfigStub;
   let eventBridgeStub;
   let loginStub;
   let genericHttpClientStub;
 
   beforeEach(() => {
-    // Stub interactions with secrets
+    // Stub interactions with secrets and config
     getSecretStub = sandbox.stub(utils, "getSecret");
-    stubSecretConfig();
+    getConfigStub = sandbox.stub(utils, "getConfig");
+    stubSecretsAndConfig();
 
     // Stub Gym API client
     let httpClientFake = gymApiClient.getHttpClient();
@@ -262,9 +264,10 @@ describe("Book class", function () {
     );
   });
 
-  function stubSecretConfig() {
+  function stubSecretsAndConfig() {
     getSecretStub.withArgs("loginUsername").returns("jdoe@example.com");
     getSecretStub.returns(uuidv4());
+    getConfigStub.returns(uuidv4());
   }
 
   function createTestClassBookingAvailableEvent(

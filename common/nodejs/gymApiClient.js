@@ -15,8 +15,8 @@ const JSON_MASKING_CONFIG = {
 
 module.exports = {
   login: async function (username, password) {
-    const APPLICATION_ID = await utils.getSecret("applicationId");
-    const LOGIN_DOMAIN = await utils.getSecret("loginDomain");
+    const APPLICATION_ID = await utils.getConfig("applicationId");
+    const LOGIN_DOMAIN = await utils.getConfig("loginDomain");
 
     const loginRequest = {
       method: "POST",
@@ -49,7 +49,7 @@ module.exports = {
     let client = axios.create();
 
     client.interceptors.request.use(async (request) => {
-      const CLIENT_ID = await utils.getSecret("clientId");
+      const CLIENT_ID = await utils.getConfig("clientId");
       request.headers["x-mwapps-client"] = CLIENT_ID;
       return request;
     });

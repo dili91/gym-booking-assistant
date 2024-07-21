@@ -46,7 +46,7 @@ exports.handler = async (event) => {
   let loginData = await gymApiClient.login(LOGIN_USERNAME, LOGIN_PASSWORD);
 
   // Search all classes that match my criteria of interest
-  const FACILITY_ID = await utils.getSecret("facilityId");
+  const FACILITY_ID = await utils.getConfig("facilityId");
   const searchClassesRequest = {
     method: "GET",
     url: `${CALENDAR_API_BASE_URI}/enduser/class/search`,
