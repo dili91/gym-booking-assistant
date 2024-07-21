@@ -53,12 +53,13 @@ exports.handler = async (event) => {
     return;
   }
 
-  //TODO: can these safely come on event?
-  const LOGIN_USERNAME = await utils.getSecret("loginUsername");
-  const LOGIN_PASSWORD = await utils.getSecret("loginPassword");
-  const USER_ID = await utils.getSecret("userId");
+  //TODO: userAlias added on event
+  const userCredentials = await utils.getUserCredentials(event.userAlias);
 
-  let loginData = await gymApiClient.login(LOGIN_USERNAME, LOGIN_PASSWORD);
+  let loginData = await gymApiClient.login(
+    userCredentials.loginUsername,
+    userCredentials.loginPassword,
+  );
 
   const bookClassRequest = {
     method: "POST",
@@ -68,7 +69,7 @@ exports.handler = async (event) => {
     },
     data: {
       partitionDate: classDetails.partitionDate,
-      userId: USER_ID,
+      userId: userCredentials.userId,
     },
   };
 

@@ -7,15 +7,17 @@ var gymApiClient = require("/opt/nodejs/gymApiClient");
 const { expect } = require("chai");
 
 describe("Gym API client", function () {
-  let getSecretStub;
+  let getUserCredentialsStub;
+  let getConfigStub;
 
   afterEach(() => {
     sandbox.restore();
   });
 
   beforeEach(() => {
-    // Stub interactions with secrets
-    getSecretStub = sandbox.stub(utils, "getSecret");
+    // Stub interactions with user credentials and config
+    getUserCredentialsStub = sandbox.stub(utils, "getUserCredentials");
+    getConfigStub = sandbox.stub(utils, "getConfig");
   });
 
   describe("Login", function () {
@@ -39,8 +41,8 @@ describe("Gym API client", function () {
       let loginDomain = uuidv4();
       let token = uuidv4();
 
-      getSecretStub.withArgs("applicationId").returns(applicationId);
-      getSecretStub.withArgs("loginDomain").returns(loginDomain);
+      getConfigStub.withArgs("applicationId").returns(applicationId);
+      getConfigStub.withArgs("loginDomain").returns(loginDomain);
 
       genericHttpClientStub
         .withArgs(
@@ -61,11 +63,11 @@ describe("Gym API client", function () {
       let loginData = await gymApiClient.login(username, password);
 
       // Assert
-      sandbox.assert.calledTwice(getSecretStub);
-      expect(getSecretStub.getCall(0).args[0]).to.equal("applicationId");
-      expect(getSecretStub.getCall(0).returnValue).to.equal(applicationId);
-      expect(getSecretStub.getCall(1).args[0]).to.equal("loginDomain");
-      expect(getSecretStub.getCall(1).returnValue).to.equal(loginDomain);
+      sandbox.assert.calledTwice(getConfigStub);
+      expect(getConfigStub.getCall(0).args[0]).to.equal("applicationId");
+      expect(getConfigStub.getCall(0).returnValue).to.equal(applicationId);
+      expect(getConfigStub.getCall(1).args[0]).to.equal("loginDomain");
+      expect(getConfigStub.getCall(1).returnValue).to.equal(loginDomain);
 
       sandbox.assert.calledOnceWithMatch(
         genericHttpClientStub,
@@ -89,8 +91,8 @@ describe("Gym API client", function () {
       let applicationId = uuidv4();
       let loginDomain = uuidv4();
 
-      getSecretStub.withArgs("applicationId").returns(applicationId);
-      getSecretStub.withArgs("loginDomain").returns(loginDomain);
+      getConfigStub.withArgs("applicationId").returns(applicationId);
+      getConfigStub.withArgs("loginDomain").returns(loginDomain);
 
       genericHttpClientStub
         .withArgs(
@@ -136,7 +138,7 @@ describe("Gym API client", function () {
       it("It should include the x-mwapps-client header", async function () {
         // Arrange
         let clientId = uuidv4();
-        getSecretStub.withArgs("clientId").returns(clientId);
+        getConfigStub.withArgs("clientId").returns(clientId);
         let client = gymApiClient.getHttpClient();
         sandbox.spy(client, "request");
 

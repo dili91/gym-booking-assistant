@@ -17,13 +17,15 @@ let config = null;
 module.exports = {
   /**
    * Utility to fetch a config value
-   * 
-   * @param {*} name of the config to lookup 
+   *
+   * @param {*} name of the config to lookup
    */
   getConfig: async (name) => {
-    if(!config){
-      const parametersStoreResponse = await serviceSystemManagerClient.send(new GetParameterCommand("GymBookingAssistant"));
-      config = JSON.parse(parametersStoreResponse.Parameter.Value)
+    if (!config) {
+      const parametersStoreResponse = await serviceSystemManagerClient.send(
+        new GetParameterCommand("GymBookingAssistant"),
+      );
+      config = JSON.parse(parametersStoreResponse.Parameter.Value);
     }
 
     const value = config[name];
@@ -36,9 +38,9 @@ module.exports = {
 
   /**
    * Utility to fetch user's credentials
-   * 
+   *
    * @param {*} userAlias the user alias to which the secret belongs
-   * @returns a JSON representation of the user credentials
+   * @returns a JSON representation of the user credentials. Includes loginUsername, loginPassword and userId
    */
   getUserCredentials: async (userAlias) => {
     const credentials = await secretsManagerClient.send(

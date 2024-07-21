@@ -16,7 +16,8 @@ const {
 } = require("@aws-sdk/client-scheduler");
 
 describe("Scan classes", function () {
-  let getSecretStub;
+  let getUserCredentialsStub;
+  let getConfigStub;
   let eventBridgeStub;
   let schedulerStub;
   let loginStub;
@@ -24,8 +25,9 @@ describe("Scan classes", function () {
 
   beforeEach(() => {
     // Stub interactions with secrets
-    getSecretStub = sandbox.stub(utils, "getSecret");
-    stubSecretConfig();
+    getUserCredentialsStub = sandbox.stub(utils, "getUserCredentials");
+    getConfigStub = sandbox.stub(utils, "getConfig");
+    stubSecretsAndConfig();
 
     nowCETStub = sandbox.stub(utils, "nowCET");
 
@@ -93,7 +95,7 @@ describe("Scan classes", function () {
       await scan.handler();
 
       // Assert
-      sandbox.assert.calledThrice(getSecretStub);
+      sandbox.assert.calledThrice(getUserCredentialsStub);
       sandbox.assert.calledOnce(loginStub);
       sandbox.assert.calledOnceWithMatch(
         genericHttpClientStub,
@@ -153,7 +155,7 @@ describe("Scan classes", function () {
       await scan.handler();
 
       // Assert
-      sandbox.assert.calledThrice(getSecretStub);
+      sandbox.assert.calledThrice(getUserCredentialsStub);
       sandbox.assert.calledOnce(loginStub);
       sandbox.assert.calledOnceWithMatch(
         genericHttpClientStub,
@@ -206,7 +208,7 @@ describe("Scan classes", function () {
     await scan.handler();
 
     // Assert
-    sandbox.assert.calledThrice(getSecretStub);
+    sandbox.assert.calledThrice(getUserCredentialsStub);
     sandbox.assert.calledOnce(loginStub);
     sandbox.assert.calledOnceWithMatch(
       genericHttpClientStub,
@@ -240,11 +242,7 @@ describe("Scan classes", function () {
     const classId = uuidv4();
 
     nowCETStub.returns(utils.stringToDateCET("2024-07-11T08:00:00"));
-    stubSearchClassResponse(
-      classId,
-      "Pilates",
-      "WaitingBookingOpensPremium",
-    );
+    stubSearchClassResponse(classId, "Pilates", "WaitingBookingOpensPremium");
 
     schedulerStub
       .withArgs(
@@ -289,9 +287,13 @@ describe("Scan classes", function () {
     );
   });
 
-  function stubSecretConfig() {
-    getSecretStub.withArgs("loginUsername").returns("jdoe@example.com");
-    getSecretStub.returns(uuidv4());
+  function stubSecretsAndConfig() {
+    getUserCredentialsStub.returns({
+      loginUsername: "jdoe@example.com",
+      loginPassword: uuidv4(),
+      userId: uuidv4(),
+    });
+    getConfigStub.returns(uuidv4());
   }
 
   /**

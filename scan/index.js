@@ -38,15 +38,16 @@ const SEARCH_CRITERIA = {
 };
 
 exports.handler = async (event) => {
-  // TODO: create a schedule on event bridge including a user identifier. 
-  // I should then query a secret that's specific to the user 
-  const LOGIN_USERNAME = await utils.getSecret("loginUsername");
-  const LOGIN_PASSWORD = await utils.getSecret("loginPassword");
+  //TODO: userAlias added on event
+  const userCredentials = await utils.getUserCredentials(event.userAlias);
+  let loginData = await gymApiClient.login(
+    userCredentials.loginUsername,
+    userCredentials.loginPassword,
+  );
 
-  let loginData = await gymApiClient.login(LOGIN_USERNAME, LOGIN_PASSWORD);
+  const facilityId = await utils.getConfig("facilityId");
 
   // Search all classes that match my criteria of interest
-  const FACILITY_ID = await utils.getConfig("facilityId");
   const searchClassesRequest = {
     method: "GET",
     url: `${CALENDAR_API_BASE_URI}/enduser/class/search`,
@@ -54,7 +55,7 @@ exports.handler = async (event) => {
       Authorization: `Bearer ${loginData.token}`,
     },
     params: {
-      facilityId: FACILITY_ID,
+      facilityId: facilityId,
       fromDate: utils.nowCET().format("yyyyMMDD"),
       eventType: "Class",
     },

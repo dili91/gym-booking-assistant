@@ -11,7 +11,7 @@ const {
 } = require("@aws-sdk/client-eventbridge");
 
 describe("Book class", function () {
-  let getSecretStub;
+  let getUserCredentialsStub;
   let getConfigStub;
   let eventBridgeStub;
   let loginStub;
@@ -19,7 +19,7 @@ describe("Book class", function () {
 
   beforeEach(() => {
     // Stub interactions with secrets and config
-    getSecretStub = sandbox.stub(utils, "getSecret");
+    getUserCredentialsStub = sandbox.stub(utils, "getUserCredentials");
     getConfigStub = sandbox.stub(utils, "getConfig");
     stubSecretsAndConfig();
 
@@ -98,7 +98,7 @@ describe("Book class", function () {
     await book.handler(classBookingAvailableEvent);
 
     // Assert
-    sandbox.assert.calledThrice(getSecretStub);
+    sandbox.assert.calledThrice(getUserCredentialsStub);
 
     sandbox.assert.calledOnce(loginStub);
     sandbox.assert.calledOnceWithMatch(
@@ -146,7 +146,7 @@ describe("Book class", function () {
     await book.handler(classBookingAvailableEvent);
 
     // Assert
-    sandbox.assert.notCalled(getSecretStub);
+    sandbox.assert.notCalled(getUserCredentialsStub);
     sandbox.assert.notCalled(loginStub);
     sandbox.assert.notCalled(genericHttpClientStub);
     sandbox.assert.notCalled(eventBridgeStub);
@@ -163,7 +163,7 @@ describe("Book class", function () {
     await book.handler(classBookingAvailableEvent);
 
     // Assert
-    sandbox.assert.notCalled(getSecretStub);
+    sandbox.assert.notCalled(getUserCredentialsStub);
     sandbox.assert.notCalled(loginStub);
     sandbox.assert.notCalled(genericHttpClientStub);
     sandbox.assert.notCalled(eventBridgeStub);
@@ -227,7 +227,7 @@ describe("Book class", function () {
     await book.handler(classBookingAvailableEvent);
 
     // Assert
-    sandbox.assert.calledThrice(getSecretStub);
+    sandbox.assert.calledThrice(getUserCredentialsStub);
 
     sandbox.assert.calledOnce(loginStub);
     sandbox.assert.calledOnceWithMatch(
@@ -265,8 +265,11 @@ describe("Book class", function () {
   });
 
   function stubSecretsAndConfig() {
-    getSecretStub.withArgs("loginUsername").returns("jdoe@example.com");
-    getSecretStub.returns(uuidv4());
+    getUserCredentialsStub.returns({
+      loginUsername: "jdoe@example.com",
+      loginPassword: uuidv4(),
+      userId: uuidv4(),
+    });
     getConfigStub.returns(uuidv4());
   }
 
