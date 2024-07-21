@@ -2,41 +2,52 @@ const {
   GetSecretValueCommand,
   SecretsManagerClient,
 } = require("@aws-sdk/client-secrets-manager");
+const secretsManagerClient = new SecretsManagerClient();
+
+const { SSMClient, GetParameterCommand } = require("@aws-sdk/client-ssm");
+const serviceSystemManagerClient = new SSMClient();
 
 const moment = require("moment-timezone");
-const secretsManagerClient = new SecretsManagerClient();
 
 const CET_TIMEZONE = "Europe/Rome";
 
-// Holds the JSON secret returned by the AWS secret manager
-let secret = null;
+// Holds the JSON config returned by the AWS config manager
+let config = null;
 
 module.exports = {
-  getEnvVariable: (name) => {
-    const value = process.env[name];
-    if (!value) {
-      throw new Error(`Environment variable ${name} is not defined`);
+  /**
+   * Utility to fetch a config value
+   * 
+   * @param {*} name of the config to lookup 
+   */
+  getConfig: async (name) => {
+    if(!config){
+      const parametersStoreResponse = await serviceSystemManagerClient.send(new GetParameterCommand("GymBookingAssistant"));
+      config = JSON.parse(parametersStoreResponse.Parameter.Value)
     }
+
+    const value = config[name];
+    if (!value) {
+      throw new Error(`Config "${name}" not found.`);
+    }
+
     return value;
   },
 
-  getSecret: async (name) => {
-    if (!secret) {
-      const secretValue = await secretsManagerClient.send(
-        new GetSecretValueCommand({
-          SecretId: "GymBookingAssistant",
-        }),
-      );
+  /**
+   * Utility to fetch user's credentials
+   * 
+   * @param {*} userAlias the user alias to which the secret belongs
+   * @returns a JSON representation of the user credentials
+   */
+  getUserCredentials: async (userAlias) => {
+    const credentials = await secretsManagerClient.send(
+      new GetSecretValueCommand({
+        SecretId: `GymBookingAssistant_Credentials_${userAlias}`,
+      }),
+    );
 
-      secret = JSON.parse(secretValue.SecretString);
-    }
-
-    const value = secret[name];
-    if (!value) {
-      throw new Error(`Secret ${name} not found.`);
-    }
-
-    return value;
+    return JSON.parse(credentials.SecretString);
   },
 
   truncateString: (str, num) => {
