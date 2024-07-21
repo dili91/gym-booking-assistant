@@ -79,6 +79,7 @@ describe("Scan classes", function () {
     ],
     async function (value) {
       // Arrange
+      const userAlias = uuidv4();
       const classId = uuidv4();
       const nowCET = utils.stringToDateCET(value.nowCET);
       const startDateCET = utils.stringToDateCET(value.classStartDate);
@@ -92,10 +93,13 @@ describe("Scan classes", function () {
       });
 
       // Act
-      await scan.handler();
+      await scan.handler({
+        userAlias: userAlias,
+      });
 
       // Assert
-      sandbox.assert.calledThrice(getUserCredentialsStub);
+      sandbox.assert.calledOnceWithMatch(getUserCredentialsStub, userAlias);
+      sandbox.assert.calledOnceWithMatch(getConfigStub, "facilityId");
       sandbox.assert.calledOnce(loginStub);
       sandbox.assert.calledOnceWithMatch(
         genericHttpClientStub,
@@ -139,6 +143,7 @@ describe("Scan classes", function () {
     ],
     async function (value) {
       // Arrange
+      const userAlias = uuidv4();
       const classId = uuidv4();
       const nowCET = utils.stringToDateCET(value.nowCET);
       const startDateCET = utils.stringToDateCET(value.classStartDate);
@@ -152,10 +157,13 @@ describe("Scan classes", function () {
       });
 
       // Act
-      await scan.handler();
+      await scan.handler({
+        userAlias: userAlias,
+      });
 
       // Assert
-      sandbox.assert.calledThrice(getUserCredentialsStub);
+      sandbox.assert.calledOnceWithMatch(getUserCredentialsStub, userAlias);
+      sandbox.assert.calledOnceWithMatch(getConfigStub, "facilityId");
       sandbox.assert.calledOnce(loginStub);
       sandbox.assert.calledOnceWithMatch(
         genericHttpClientStub,
@@ -175,6 +183,7 @@ describe("Scan classes", function () {
   it("It should publish ClassBookingAvailable event for an immediate booking", async function () {
     // Arrange
     const classId = uuidv4();
+    const userAlias = uuidv4();
 
     // nowCET will return 2024-07-11T09:00:00, and so the test utils will build a class startDate 1 hour after
     nowCETStub.returns(utils.stringToDateCET("2024-07-11T09:00:00"));
@@ -205,10 +214,13 @@ describe("Scan classes", function () {
       });
 
     // Act
-    await scan.handler();
+    await scan.handler({
+      userAlias: userAlias,
+    });
 
     // Assert
-    sandbox.assert.calledThrice(getUserCredentialsStub);
+    sandbox.assert.calledOnceWithMatch(getUserCredentialsStub, userAlias);
+    sandbox.assert.calledOnceWithMatch(getConfigStub, "facilityId");
     sandbox.assert.calledOnce(loginStub);
     sandbox.assert.calledOnceWithMatch(
       genericHttpClientStub,
@@ -259,7 +271,9 @@ describe("Scan classes", function () {
       });
 
     // Act
-    await scan.handler();
+    await scan.handler({
+      userAlias: "andrea",
+    });
 
     // Assert
     sandbox.assert.calledOnce(genericHttpClientStub);
