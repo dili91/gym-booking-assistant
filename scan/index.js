@@ -46,7 +46,7 @@ exports.handler = async (event) => {
     throw new Error(errorMsg);
   }
 
-  const userCredentials = await utils.getUserCredentials(event.userAlias);
+  const userCredentials = await utils.getUserCredentials(userAlias);
   let loginData = await gymApiClient.login(
     userCredentials.loginUsername,
     userCredentials.loginPassword,

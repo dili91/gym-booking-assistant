@@ -94,7 +94,9 @@ describe("Scan classes", function () {
 
       // Act
       await scan.handler({
-        userAlias: userAlias,
+        detail: {
+          userAlias: userAlias,
+        },
       });
 
       // Assert
@@ -158,7 +160,9 @@ describe("Scan classes", function () {
 
       // Act
       await scan.handler({
-        userAlias: userAlias,
+        detail: {
+          userAlias: userAlias,
+        },
       });
 
       // Assert
@@ -215,7 +219,9 @@ describe("Scan classes", function () {
 
     // Act
     await scan.handler({
-      userAlias: userAlias,
+      detail: {
+        userAlias: userAlias,
+      },
     });
 
     // Assert
@@ -251,6 +257,7 @@ describe("Scan classes", function () {
 
   it("It should schedule a dynamic rule on EventBridge to book a class as soon as possible", async function () {
     // Arrange
+    const userAlias = uuidv4();
     const classId = uuidv4();
 
     nowCETStub.returns(utils.stringToDateCET("2024-07-11T08:00:00"));
@@ -272,10 +279,14 @@ describe("Scan classes", function () {
 
     // Act
     await scan.handler({
-      userAlias: "andrea",
+      detail: {
+        userAlias: userAlias,
+      },
     });
 
     // Assert
+    sandbox.assert.calledOnceWithMatch(getUserCredentialsStub, userAlias);
+    sandbox.assert.calledOnceWithMatch(getConfigStub, "facilityId");
     sandbox.assert.calledOnce(genericHttpClientStub);
     sandbox.assert.calledOnce(loginStub);
     sandbox.assert.neverCalledWith(
