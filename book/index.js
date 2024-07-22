@@ -59,7 +59,6 @@ exports.handler = async (event) => {
     return;
   }
 
-  //TODO: userAlias added on event
   const userCredentials = await utils.getUserCredentials(userAlias);
 
   let loginData = await gymApiClient.login(

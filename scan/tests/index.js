@@ -114,7 +114,21 @@ describe("Scan classes", function () {
           );
         }),
       );
-      sandbox.assert.calledOnce(eventBridgeStub);
+      sandbox.assert.calledOnceWithMatch(
+        eventBridgeStub,
+        sandbox.match(function (command) {
+          const e = command.input.Entries[0];
+          const classDetails = JSON.parse(e.Detail.class);
+          return (
+            command instanceof PutEventsCommand &&
+            e.Source == "GymBookingAssistant.scan" &&
+            e.DetailType == "ClassBookingAvailable" &&
+            e.Detail.userAlias == userAlias &&
+            classDetails.id == classId &&
+            classDetails.bookingInfo.bookingUserStatus == "CanBook"
+          );
+        }),
+      );
     },
   );
 
@@ -243,13 +257,14 @@ describe("Scan classes", function () {
       eventBridgeStub,
       sandbox.match(function (command) {
         const e = command.input.Entries[0];
-        const eventPayload = JSON.parse(e.Detail);
+        const classDetails = JSON.parse(e.Detail.class);
         return (
           command instanceof PutEventsCommand &&
           e.Source == "GymBookingAssistant.scan" &&
           e.DetailType == "ClassBookingAvailable" &&
-          eventPayload.id == classId &&
-          eventPayload.bookingInfo.bookingUserStatus == "CanBook"
+          e.Detail.userAlias == userAlias &&
+          classDetails.id == classId &&
+          classDetails.bookingInfo.bookingUserStatus == "CanBook"
         );
       }),
     );
@@ -298,15 +313,17 @@ describe("Scan classes", function () {
       schedulerStub,
       sandbox.match(function (command) {
         const c = command.input;
-        const payload = JSON.parse(c.Target.Input);
+        const eventDetails = JSON.parse(c.Target.Input);
         return (
           command instanceof CreateScheduleCommand &&
           c.Name == `ScheduleBooking_${classId}` &&
           c.Target.EventBridgeParameters.Source == "GymBookingAssistant.scan" &&
           c.Target.EventBridgeParameters.DetailType ==
             "ClassBookingAvailable" &&
-          payload.id == classId &&
-          payload.bookingInfo.bookingUserStatus == "WaitingBookingOpensPremium"
+          eventDetails.userAlias == userAlias &&
+          eventDetails.class.id == classId &&
+          eventDetails.class.bookingInfo.bookingUserStatus ==
+            "WaitingBookingOpensPremium"
         );
       }),
     );

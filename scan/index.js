@@ -128,13 +128,13 @@ exports.handler = async (event) => {
         logging.debug(
           `Booking for class ${e.name} with id=${e.id} should happen immediately.`,
         );
-        await publishBookingAvailableEvent(e);
+        await publishBookingAvailableEvent(userAlias, e);
         break;
       case "WaitingBookingOpensPremium":
         logging.debug(
           `Booking for class ${e.name} with id=${e.id} should be scheduled on ${e.bookingInfo.bookingOpensOn}`,
         );
-        await scheduleFutureBooking(e);
+        await scheduleFutureBooking(userAlias, e);
         break;
       default:
         logging.error(
@@ -146,14 +146,17 @@ exports.handler = async (event) => {
 };
 
 //TODO: refine event payload
-async function publishBookingAvailableEvent(e) {
+async function publishBookingAvailableEvent(userAlias, classDetails) {
   const classBookingAvailableEvent = {
     Entries: [
       {
         Time: new Date(),
         Source: "GymBookingAssistant.scan",
         DetailType: "ClassBookingAvailable",
-        Detail: JSON.stringify(e),
+        Detail: {
+          userAlias: userAlias,
+          class: JSON.stringify(classDetails),
+        },
       },
     ],
   };
@@ -173,14 +176,14 @@ async function publishBookingAvailableEvent(e) {
 }
 
 //TODO: refine event payload
-async function scheduleFutureBooking(e) {
-  let bookingOpensOnUTC = new Date(e.bookingInfo.bookingOpensOn)
+async function scheduleFutureBooking(userAlias, classDetails) {
+  let bookingOpensOnUTC = new Date(classDetails.bookingInfo.bookingOpensOn)
     .toISOString()
     .slice(0, -5);
 
   const scheduleRequest = {
-    Name: `ScheduleBooking_${e.id}`,
-    Description: `Class: ${e.name} - Starts at: ${e.startDate}`,
+    Name: `ScheduleBooking_${classDetails.id}`,
+    Description: `Class: ${classDetails.name} - Starts at: ${classDetails.startDate}`,
     ScheduleExpression: `at(${bookingOpensOnUTC})`,
     Target: {
       Arn: "arn:aws:events:eu-south-1:097176176455:event-bus/default",
@@ -190,7 +193,10 @@ async function scheduleFutureBooking(e) {
         DetailType: "ClassBookingAvailable",
         Source: "GymBookingAssistant.scan",
       },
-      Input: JSON.stringify(e),
+      Input: JSON.stringify({
+        userAlias: userAlias,
+        class: classDetails,
+      }),
     },
     ActionAfterCompletion: ActionAfterCompletion.DELETE,
     FlexibleTimeWindow: {

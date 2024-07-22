@@ -51,7 +51,6 @@ describe("Book class", function () {
       "detail-type": "ClassBookingAvailable",
       source: "GymBookingAssistant.scan",
       detail: {
-        //TODO nest into class object
         class: {
           id: uuidv4(),
         },
