@@ -83,7 +83,7 @@ describe("Gym API client", function () {
       expect(loginData.token).to.equal(token);
     });
 
-    it("Should exit in case of unsuccessful login", async function () {
+    it("Should throw error in case of unsuccessful login", async function () {
       let applicationId = uuidv4();
       let loginDomain = uuidv4();
 
@@ -122,7 +122,7 @@ describe("Gym API client", function () {
         expect(error).to.be.an("error");
         expect(error.name).to.be.equal("Error");
         expect(error.message).to.be.equal(
-          "Received even without userAlias. Aborting",
+          'Unable to login: {"errors":[{"field":"EntityId","type":"ErrorCode","details":"EntityIdNotValid","message":"ErrorCode"}]}. Aborting',
         );
       }
     });

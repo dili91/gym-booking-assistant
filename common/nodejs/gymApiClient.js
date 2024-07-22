@@ -34,7 +34,7 @@ module.exports = {
       .request(loginRequest);
 
     if (module.exports.isResponseError(loginResponse)) {
-      const errorMsg = `Unable to login: ${JSON.stringify(loginResponse.data)}.Aborting`;
+      const errorMsg = `Unable to login: ${JSON.stringify(loginResponse.data)}. Aborting`;
       await logging.error(errorMsg);
 
       throw new Error(errorMsg);
