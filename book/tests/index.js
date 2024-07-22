@@ -6,7 +6,6 @@ var book = require("../index");
 var utils = require("/opt/nodejs/utils");
 var gymApiClient = require("/opt/nodejs/gymApiClient");
 
-
 const {
   EventBridgeClient,
   PutEventsCommand,
@@ -53,34 +52,37 @@ describe("Book class", function () {
       source: "GymBookingAssistant.scan",
       detail: {
         //TODO nest into class object
-        class:{
-          id: uuidv4()
-        } 
+        class: {
+          id: uuidv4(),
+        },
       },
     };
-    
+
     try {
       // Act
       await book.handler(classBookingAvailableEvent);
-    } catch(error) {
-        // Assert
-        expect(error).to.be.an('error');
-        expect(error.name).to.be.equal('Error');
-        expect(error.message).to.be.equal('Received even without userAlias. Aborting');
+    } catch (error) {
+      // Assert
+      expect(error).to.be.an("error");
+      expect(error.name).to.be.equal("Error");
+      expect(error.message).to.be.equal(
+        "Received even without userAlias. Aborting",
+      );
     }
   });
 
   it("It should book a class and publish a ClassBookingCompleted event", async function () {
     // Arrange
     const userAlias = uuidv4();
-    const classBookingAvailableEvent = createTestClassBookingAvailableEvent(userAlias);
+    const classBookingAvailableEvent =
+      createTestClassBookingAvailableEvent(userAlias);
     genericHttpClientStub
       .withArgs(
         sandbox.match(function (request) {
           return (
             request.method == "POST" &&
             request.url.endsWith(
-              `/core/calendarevent/${classBookingAvailableEvent.detail.id}/book`,
+              `/core/calendarevent/${classBookingAvailableEvent.detail.class.id}/book`,
             ) &&
             request.headers.Authorization.length > 0
           );
@@ -132,11 +134,11 @@ describe("Book class", function () {
         return (
           request.method == "POST" &&
           request.url.endsWith(
-            `/core/calendarevent/${classBookingAvailableEvent.detail.id}/book`,
+            `/core/calendarevent/${classBookingAvailableEvent.detail.class.id}/book`,
           ) &&
           request.headers.Authorization.length > 0 &&
           request.data.partitionDate ==
-            classBookingAvailableEvent.detail.partitionDate
+            classBookingAvailableEvent.detail.class.partitionDate
         );
       }),
     );
@@ -151,9 +153,9 @@ describe("Book class", function () {
           e.Source == "GymBookingAssistant.book" &&
           e.DetailType == "ClassBookingCompleted" &&
           eventPayload.classStartDate ==
-            classBookingAvailableEvent.detail.startDate &&
-          eventPayload.classId == classBookingAvailableEvent.detail.id &&
-          eventPayload.className == classBookingAvailableEvent.detail.name
+            classBookingAvailableEvent.detail.class.startDate &&
+          eventPayload.classId == classBookingAvailableEvent.detail.class.id &&
+          eventPayload.className == classBookingAvailableEvent.detail.class.name
         );
       }),
     );
@@ -199,7 +201,8 @@ describe("Book class", function () {
   it("It should publish a ClassBookingFailed event and an errors array if the class can't be booked", async function () {
     // Arrange
     const userAlias = uuidv4();
-    const classBookingAvailableEvent = createTestClassBookingAvailableEvent(userAlias);
+    const classBookingAvailableEvent =
+      createTestClassBookingAvailableEvent(userAlias);
     let tooEarlyBookingError = {
       field: "BookingApiException.TooEarlyToBookParticipantException",
       type: "Validation",
@@ -214,7 +217,7 @@ describe("Book class", function () {
           return (
             request.method == "POST" &&
             request.url.endsWith(
-              `/core/calendarevent/${classBookingAvailableEvent.detail.id}/book`,
+              `/core/calendarevent/${classBookingAvailableEvent.detail.class.id}/book`,
             ) &&
             request.headers.Authorization.length > 0
           );
@@ -263,11 +266,11 @@ describe("Book class", function () {
         return (
           request.method == "POST" &&
           request.url.endsWith(
-            `/core/calendarevent/${classBookingAvailableEvent.detail.id}/book`,
+            `/core/calendarevent/${classBookingAvailableEvent.detail.class.id}/book`,
           ) &&
           request.headers.Authorization.length > 0 &&
           request.data.partitionDate ==
-            classBookingAvailableEvent.detail.partitionDate
+            classBookingAvailableEvent.detail.class.partitionDate
         );
       }),
     );
@@ -283,9 +286,9 @@ describe("Book class", function () {
           e.DetailType == "ClassBookingFailed" &&
           eventPayload.errors[0].field == tooEarlyBookingError.field &&
           eventPayload.classStartDate ==
-            classBookingAvailableEvent.detail.startDate &&
-          eventPayload.classId == classBookingAvailableEvent.detail.id &&
-          eventPayload.className == classBookingAvailableEvent.detail.name
+            classBookingAvailableEvent.detail.class.startDate &&
+          eventPayload.classId == classBookingAvailableEvent.detail.class.id &&
+          eventPayload.className == classBookingAvailableEvent.detail.class.name
         );
       }),
     );
@@ -330,8 +333,8 @@ describe("Book class", function () {
           bookingInfo: {
             cancellationMinutesInAdvance: cancellationMinutesInAdvance,
             bookingUserStatus: bookingStatus,
-          }
-        }
+          },
+        },
       },
     };
   }

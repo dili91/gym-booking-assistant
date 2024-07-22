@@ -39,11 +39,11 @@ const SEARCH_CRITERIA = {
 
 exports.handler = async (event) => {
   const userAlias = event.detail.userAlias;
-  if(!userAlias){
+  if (!userAlias) {
     const errorMsg = "Received even without userAlias. Aborting";
     await logging.error(errorMsg);
-    
-    throw new Error(errorMsg)
+
+    throw new Error(errorMsg);
   }
 
   const userCredentials = await utils.getUserCredentials(event.userAlias);
@@ -72,7 +72,7 @@ exports.handler = async (event) => {
     .request(searchClassesRequest);
 
   if (gymApiClient.isResponseError(searchClassesResponse)) {
-    const errorMsg = `Unable to get classes: ${JSON.stringify(searchClassesResponse.data)}. Aborting`
+    const errorMsg = `Unable to get classes: ${JSON.stringify(searchClassesResponse.data)}. Aborting`;
     logging.error(errorMsg);
 
     throw new Error(errorMsg);

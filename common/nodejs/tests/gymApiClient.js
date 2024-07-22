@@ -117,11 +117,13 @@ describe("Gym API client", function () {
       try {
         // Act
         await gymApiClient.login(username, password);
-      } catch(error) {
-          // Assert
-          expect(error).to.be.an('error');
-          expect(error.name).to.be.equal('Error');
-          expect(error.message).to.be.equal('Received even without userAlias. Aborting');
+      } catch (error) {
+        // Assert
+        expect(error).to.be.an("error");
+        expect(error.name).to.be.equal("Error");
+        expect(error.message).to.be.equal(
+          "Received even without userAlias. Aborting",
+        );
       }
     });
   });
