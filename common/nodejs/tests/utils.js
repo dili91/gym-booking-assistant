@@ -75,7 +75,7 @@ describe("Utils", function () {
           return (
             command instanceof GetSecretValueCommand &&
             command.input.SecretId ==
-              `GymBookingAssistant_Credentials_${userAlias}`
+              `GymBookingAssistant/Credentials/${userAlias}`
           );
         }),
       );
