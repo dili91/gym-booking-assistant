@@ -118,14 +118,14 @@ describe("Scan classes", function () {
         eventBridgeStub,
         sandbox.match(function (command) {
           const e = command.input.Entries[0];
-          const classDetails = JSON.parse(e.Detail.class);
+          const eventPayload = JSON.parse(e.Detail);
           return (
             command instanceof PutEventsCommand &&
             e.Source == "GymBookingAssistant.scan" &&
             e.DetailType == "ClassBookingAvailable" &&
-            e.Detail.userAlias == userAlias &&
-            classDetails.id == classId &&
-            classDetails.bookingInfo.bookingUserStatus == "CanBook"
+            eventPayload.userAlias == userAlias &&
+            eventPayload.class.id == classId &&
+            eventPayload.class.bookingInfo.bookingUserStatus == "CanBook"
           );
         }),
       );
@@ -257,14 +257,14 @@ describe("Scan classes", function () {
       eventBridgeStub,
       sandbox.match(function (command) {
         const e = command.input.Entries[0];
-        const classDetails = JSON.parse(e.Detail.class);
+        const eventPayload = JSON.parse(e.Detail);
         return (
           command instanceof PutEventsCommand &&
           e.Source == "GymBookingAssistant.scan" &&
           e.DetailType == "ClassBookingAvailable" &&
-          e.Detail.userAlias == userAlias &&
-          classDetails.id == classId &&
-          classDetails.bookingInfo.bookingUserStatus == "CanBook"
+          eventPayload.userAlias == userAlias &&
+          eventPayload.class.id == classId &&
+          eventPayload.class.bookingInfo.bookingUserStatus == "CanBook"
         );
       }),
     );

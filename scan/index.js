@@ -153,10 +153,10 @@ async function publishBookingAvailableEvent(userAlias, classDetails) {
         Time: new Date(),
         Source: "GymBookingAssistant.scan",
         DetailType: "ClassBookingAvailable",
-        Detail: {
+        Detail: JSON.stringify({
           userAlias: userAlias,
-          class: JSON.stringify(classDetails),
-        },
+          class: classDetails,
+        }),
       },
     ],
   };
