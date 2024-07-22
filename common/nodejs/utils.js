@@ -23,8 +23,13 @@ module.exports = {
   getConfig: async (name) => {
     if (!config) {
       const parametersStoreResponse = await serviceSystemManagerClient.send(
-        new GetParameterCommand("GymBookingAssistant"),
+        new GetParameterCommand({
+          name: "GymBookingAssistant",
+        }),
       );
+
+      console.log(parametersStoreResponse);
+
       config = JSON.parse(parametersStoreResponse.Parameter.Value);
     }
 
