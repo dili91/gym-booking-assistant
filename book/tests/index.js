@@ -1,9 +1,11 @@
+const { expect } = require("chai");
 const sandbox = require("sinon").createSandbox();
 const { v4: uuidv4 } = require("uuid");
 
 var book = require("../index");
 var utils = require("/opt/nodejs/utils");
 var gymApiClient = require("/opt/nodejs/gymApiClient");
+
 
 const {
   EventBridgeClient,
@@ -12,7 +14,6 @@ const {
 
 describe("Book class", function () {
   let getUserCredentialsStub;
-  let getConfigStub;
   let eventBridgeStub;
   let loginStub;
   let genericHttpClientStub;
@@ -20,8 +21,7 @@ describe("Book class", function () {
   beforeEach(() => {
     // Stub interactions with secrets and config
     getUserCredentialsStub = sandbox.stub(utils, "getUserCredentials");
-    getConfigStub = sandbox.stub(utils, "getConfig");
-    stubSecretsAndConfig();
+    stubSecrets();
 
     // Stub Gym API client
     let httpClientFake = gymApiClient.getHttpClient();
@@ -45,9 +45,35 @@ describe("Book class", function () {
     sandbox.restore();
   });
 
-  it("It should book a class and publish a ClassBookingCompleted event with a booked=true flag", async function () {
+  it("Should throw an error if userAlias is not included in event", async function () {
     // Arrange
-    const classBookingAvailableEvent = createTestClassBookingAvailableEvent();
+    const classBookingAvailableEvent = {
+      id: uuidv4(), //event id
+      "detail-type": "ClassBookingAvailable",
+      source: "GymBookingAssistant.scan",
+      detail: {
+        //TODO nest into class object
+        class:{
+          id: uuidv4()
+        } 
+      },
+    };
+    
+    try {
+      // Act
+      await book.handler(classBookingAvailableEvent);
+    } catch(error) {
+        // Assert
+        expect(error).to.be.an('error');
+        expect(error.name).to.be.equal('Error');
+        expect(error.message).to.be.equal('Received even without userAlias. Aborting');
+    }
+  });
+
+  it("It should book a class and publish a ClassBookingCompleted event", async function () {
+    // Arrange
+    const userAlias = uuidv4();
+    const classBookingAvailableEvent = createTestClassBookingAvailableEvent(userAlias);
     genericHttpClientStub
       .withArgs(
         sandbox.match(function (request) {
@@ -98,8 +124,7 @@ describe("Book class", function () {
     await book.handler(classBookingAvailableEvent);
 
     // Assert
-    sandbox.assert.calledThrice(getUserCredentialsStub);
-
+    sandbox.assert.calledOnceWithMatch(getUserCredentialsStub, userAlias);
     sandbox.assert.calledOnce(loginStub);
     sandbox.assert.calledOnceWithMatch(
       genericHttpClientStub,
@@ -137,6 +162,7 @@ describe("Book class", function () {
   it("It should reject booking a class if its status is different from CanBook", async function () {
     // Arrange
     const classBookingAvailableEvent = createTestClassBookingAvailableEvent(
+      uuidv4(),
       utils.nowCET().add(6, "hour"),
       120,
       "CannotBook",
@@ -155,6 +181,7 @@ describe("Book class", function () {
   it("It should reject booking a class if there's not enough time to un-book it", async function () {
     // Arrange
     const classBookingAvailableEvent = createTestClassBookingAvailableEvent(
+      uuidv4(),
       utils.nowCET().add(1, "hour"),
       120,
     );
@@ -169,9 +196,10 @@ describe("Book class", function () {
     sandbox.assert.notCalled(eventBridgeStub);
   });
 
-  it("It should publish a ClassBookingFailed event with a booked=false flag and an errors array if the class can't be booked", async function () {
+  it("It should publish a ClassBookingFailed event and an errors array if the class can't be booked", async function () {
     // Arrange
-    const classBookingAvailableEvent = createTestClassBookingAvailableEvent();
+    const userAlias = uuidv4();
+    const classBookingAvailableEvent = createTestClassBookingAvailableEvent(userAlias);
     let tooEarlyBookingError = {
       field: "BookingApiException.TooEarlyToBookParticipantException",
       type: "Validation",
@@ -227,8 +255,7 @@ describe("Book class", function () {
     await book.handler(classBookingAvailableEvent);
 
     // Assert
-    sandbox.assert.calledThrice(getUserCredentialsStub);
-
+    sandbox.assert.calledOnceWithMatch(getUserCredentialsStub, userAlias);
     sandbox.assert.calledOnce(loginStub);
     sandbox.assert.calledOnceWithMatch(
       genericHttpClientStub,
@@ -264,16 +291,16 @@ describe("Book class", function () {
     );
   });
 
-  function stubSecretsAndConfig() {
+  function stubSecrets() {
     getUserCredentialsStub.returns({
       loginUsername: "jdoe@example.com",
       loginPassword: uuidv4(),
       userId: uuidv4(),
     });
-    getConfigStub.returns(uuidv4());
   }
 
   function createTestClassBookingAvailableEvent(
+    userAlias,
     startDateCET,
     cancellationMinutesInAdvance,
     bookingStatus,
@@ -295,13 +322,16 @@ describe("Book class", function () {
       "detail-type": "ClassBookingAvailable",
       source: "GymBookingAssistant.scan",
       detail: {
-        id: uuidv4(),
-        partitionDate: startDateCET.format("YYYYMMDD"),
-        startDate: startDateCET.format("YYYY-MM-DDTHH:mm:ss"),
-        bookingInfo: {
-          cancellationMinutesInAdvance: cancellationMinutesInAdvance,
-          bookingUserStatus: bookingStatus,
-        },
+        userAlias: userAlias,
+        class: {
+          id: uuidv4(),
+          partitionDate: startDateCET.format("YYYYMMDD"),
+          startDate: startDateCET.format("YYYY-MM-DDTHH:mm:ss"),
+          bookingInfo: {
+            cancellationMinutesInAdvance: cancellationMinutesInAdvance,
+            bookingUserStatus: bookingStatus,
+          }
+        }
       },
     };
   }

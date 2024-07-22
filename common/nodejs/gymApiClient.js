@@ -34,11 +34,10 @@ module.exports = {
       .request(loginRequest);
 
     if (module.exports.isResponseError(loginResponse)) {
-      await logging.error(
-        "Unable to login. stopping. Reason: " +
-          JSON.stringify(loginResponse.data),
-      );
-      process.exit(1);
+      const errorMsg = `Unable to login: ${JSON.stringify(loginResponse.data)}.Aborting`
+      await logging.error(errorMsg);
+
+      throw new Error(errorMsg);
     }
 
     return loginResponse.data;

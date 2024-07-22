@@ -38,7 +38,14 @@ const SEARCH_CRITERIA = {
 };
 
 exports.handler = async (event) => {
-  //TODO: userAlias added on event
+  const userAlias = event.detail.userAlias;
+  if(!userAlias){
+    const errorMsg = "Received even without userAlias. Aborting";
+    await logging.error(errorMsg);
+    
+    throw new Error(errorMsg)
+  }
+
   const userCredentials = await utils.getUserCredentials(event.userAlias);
   let loginData = await gymApiClient.login(
     userCredentials.loginUsername,
@@ -65,8 +72,10 @@ exports.handler = async (event) => {
     .request(searchClassesRequest);
 
   if (gymApiClient.isResponseError(searchClassesResponse)) {
-    logging.error("Unable to get classes. stopping");
-    process.exit(1);
+    const errorMsg = `Unable to get classes: ${JSON.stringify(searchClassesResponse.data)}. Aborting`
+    logging.error(errorMsg);
+
+    throw new Error(errorMsg);
   }
 
   // It seems not possible to filter classes of interest via an API call. So we need to fetch them first

@@ -7,7 +7,6 @@ var gymApiClient = require("/opt/nodejs/gymApiClient");
 const { expect } = require("chai");
 
 describe("Gym API client", function () {
-  let getUserCredentialsStub;
   let getConfigStub;
 
   afterEach(() => {
@@ -85,9 +84,6 @@ describe("Gym API client", function () {
     });
 
     it("Should exit in case of unsuccessful login", async function () {
-      // Arrange
-      processStub = sandbox.stub(process, "exit");
-
       let applicationId = uuidv4();
       let loginDomain = uuidv4();
 
@@ -117,11 +113,16 @@ describe("Gym API client", function () {
       // Act
       let username = "jdoe@gmail.com";
       let password = uuidv4();
-      await gymApiClient.login(username, password);
 
-      // Assert
-      expect(process.exit.calledOnce);
-      expect(process.exit.getCall(0).args[0]).to.equal(1);
+      try {
+        // Act
+        await gymApiClient.login(username, password);
+      } catch(error) {
+          // Assert
+          expect(error).to.be.an('error');
+          expect(error.name).to.be.equal('Error');
+          expect(error.message).to.be.equal('Received even without userAlias. Aborting');
+      }
     });
   });
 

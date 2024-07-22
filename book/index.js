@@ -13,10 +13,16 @@ const EXTRA_TIME_CANCEL_BOOKING_IN_MINUTES = 60;
 
 exports.handler = async (event) => {
   //TODO future improvements: anticipate the scheduling a bit and get class detail. Need to poll till BookingInfo.bookingUserStatus is CanBook
+  const userAlias = event.detail.userAlias;
+  if(!userAlias){
+    const errorMsg = "Received even without userAlias. Aborting";
+    await logging.error(errorMsg);
+    throw new Error(errorMsg)
+  }
 
-  const classDetails = event.detail;
+  const classDetails = event.detail.class;
 
-  logging.debug(
+  await logging.debug(
     `Received event of type=${event["detail-type"]} from source=${event.source} with id=${event.id}.\nTrying to book class with id=${classDetails.id} and partitionDate=${classDetails.partitionDate} ...`,
   );
 
@@ -54,7 +60,7 @@ exports.handler = async (event) => {
   }
 
   //TODO: userAlias added on event
-  const userCredentials = await utils.getUserCredentials(event.userAlias);
+  const userCredentials = await utils.getUserCredentials(userAlias);
 
   let loginData = await gymApiClient.login(
     userCredentials.loginUsername,
