@@ -42,7 +42,7 @@ describe("Utils", function () {
         sandbox.match(function (command) {
           return (
             command instanceof GetParameterCommand &&
-            command.input.name == "GymBookingAssistant"
+            command.input.Name == "GymBookingAssistant"
           );
         }),
       );

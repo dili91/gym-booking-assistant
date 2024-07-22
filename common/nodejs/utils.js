@@ -24,7 +24,7 @@ module.exports = {
     if (!config) {
       const parametersStoreResponse = await serviceSystemManagerClient.send(
         new GetParameterCommand({
-          name: "GymBookingAssistant",
+          Name: "GymBookingAssistant",
         }),
       );
 
