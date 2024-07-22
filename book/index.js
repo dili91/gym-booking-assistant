@@ -13,6 +13,10 @@ const EXTRA_TIME_CANCEL_BOOKING_IN_MINUTES = 60;
 
 exports.handler = async (event) => {
   //TODO future improvements: anticipate the scheduling a bit and get class detail. Need to poll till BookingInfo.bookingUserStatus is CanBook
+  
+  //TODO cleanup
+  await logging.info(event)
+
   const userAlias = event.detail.userAlias;
   if (!userAlias) {
     const errorMsg = "Received even without userAlias. Aborting";
