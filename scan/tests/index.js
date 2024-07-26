@@ -16,7 +16,8 @@ const {
 } = require("@aws-sdk/client-scheduler");
 
 describe("Scan classes", function () {
-  let getSecretStub;
+  let getUserCredentialsStub;
+  let getConfigStub;
   let eventBridgeStub;
   let schedulerStub;
   let loginStub;
@@ -24,8 +25,9 @@ describe("Scan classes", function () {
 
   beforeEach(() => {
     // Stub interactions with secrets
-    getSecretStub = sandbox.stub(utils, "getSecret");
-    stubSecretConfig();
+    getUserCredentialsStub = sandbox.stub(utils, "getUserCredentials");
+    getConfigStub = sandbox.stub(utils, "getConfig");
+    stubSecretsAndConfig();
 
     nowCETStub = sandbox.stub(utils, "nowCET");
 
@@ -77,6 +79,7 @@ describe("Scan classes", function () {
     ],
     async function (value) {
       // Arrange
+      const userAlias = uuidv4();
       const classId = uuidv4();
       const nowCET = utils.stringToDateCET(value.nowCET);
       const startDateCET = utils.stringToDateCET(value.classStartDate);
@@ -90,10 +93,15 @@ describe("Scan classes", function () {
       });
 
       // Act
-      await scan.handler();
+      await scan.handler({
+        detail: {
+          userAlias: userAlias,
+        },
+      });
 
       // Assert
-      sandbox.assert.calledThrice(getSecretStub);
+      sandbox.assert.calledOnceWithMatch(getUserCredentialsStub, userAlias);
+      sandbox.assert.calledOnceWithMatch(getConfigStub, "facilityId");
       sandbox.assert.calledOnce(loginStub);
       sandbox.assert.calledOnceWithMatch(
         genericHttpClientStub,
@@ -106,7 +114,21 @@ describe("Scan classes", function () {
           );
         }),
       );
-      sandbox.assert.calledOnce(eventBridgeStub);
+      sandbox.assert.calledOnceWithMatch(
+        eventBridgeStub,
+        sandbox.match(function (command) {
+          const e = command.input.Entries[0];
+          const eventPayload = JSON.parse(e.Detail);
+          return (
+            command instanceof PutEventsCommand &&
+            e.Source == "GymBookingAssistant.scan" &&
+            e.DetailType == "ClassBookingAvailable" &&
+            eventPayload.userAlias == userAlias &&
+            eventPayload.class.id == classId &&
+            eventPayload.class.bookingInfo.bookingUserStatus == "CanBook"
+          );
+        }),
+      );
     },
   );
 
@@ -137,6 +159,7 @@ describe("Scan classes", function () {
     ],
     async function (value) {
       // Arrange
+      const userAlias = uuidv4();
       const classId = uuidv4();
       const nowCET = utils.stringToDateCET(value.nowCET);
       const startDateCET = utils.stringToDateCET(value.classStartDate);
@@ -150,10 +173,15 @@ describe("Scan classes", function () {
       });
 
       // Act
-      await scan.handler();
+      await scan.handler({
+        detail: {
+          userAlias: userAlias,
+        },
+      });
 
       // Assert
-      sandbox.assert.calledThrice(getSecretStub);
+      sandbox.assert.calledOnceWithMatch(getUserCredentialsStub, userAlias);
+      sandbox.assert.calledOnceWithMatch(getConfigStub, "facilityId");
       sandbox.assert.calledOnce(loginStub);
       sandbox.assert.calledOnceWithMatch(
         genericHttpClientStub,
@@ -173,6 +201,7 @@ describe("Scan classes", function () {
   it("It should publish ClassBookingAvailable event for an immediate booking", async function () {
     // Arrange
     const classId = uuidv4();
+    const userAlias = uuidv4();
 
     // nowCET will return 2024-07-11T09:00:00, and so the test utils will build a class startDate 1 hour after
     nowCETStub.returns(utils.stringToDateCET("2024-07-11T09:00:00"));
@@ -203,10 +232,15 @@ describe("Scan classes", function () {
       });
 
     // Act
-    await scan.handler();
+    await scan.handler({
+      detail: {
+        userAlias: userAlias,
+      },
+    });
 
     // Assert
-    sandbox.assert.calledThrice(getSecretStub);
+    sandbox.assert.calledOnceWithMatch(getUserCredentialsStub, userAlias);
+    sandbox.assert.calledOnceWithMatch(getConfigStub, "facilityId");
     sandbox.assert.calledOnce(loginStub);
     sandbox.assert.calledOnceWithMatch(
       genericHttpClientStub,
@@ -228,8 +262,9 @@ describe("Scan classes", function () {
           command instanceof PutEventsCommand &&
           e.Source == "GymBookingAssistant.scan" &&
           e.DetailType == "ClassBookingAvailable" &&
-          eventPayload.id == classId &&
-          eventPayload.bookingInfo.bookingUserStatus == "CanBook"
+          eventPayload.userAlias == userAlias &&
+          eventPayload.class.id == classId &&
+          eventPayload.class.bookingInfo.bookingUserStatus == "CanBook"
         );
       }),
     );
@@ -237,14 +272,11 @@ describe("Scan classes", function () {
 
   it("It should schedule a dynamic rule on EventBridge to book a class as soon as possible", async function () {
     // Arrange
+    const userAlias = uuidv4();
     const classId = uuidv4();
 
     nowCETStub.returns(utils.stringToDateCET("2024-07-11T08:00:00"));
-    stubSearchClassResponse(
-      classId,
-      "Pilates",
-      "WaitingBookingOpensPremium",
-    );
+    stubSearchClassResponse(classId, "Pilates", "WaitingBookingOpensPremium");
 
     schedulerStub
       .withArgs(
@@ -261,9 +293,15 @@ describe("Scan classes", function () {
       });
 
     // Act
-    await scan.handler();
+    await scan.handler({
+      detail: {
+        userAlias: userAlias,
+      },
+    });
 
     // Assert
+    sandbox.assert.calledOnceWithMatch(getUserCredentialsStub, userAlias);
+    sandbox.assert.calledOnceWithMatch(getConfigStub, "facilityId");
     sandbox.assert.calledOnce(genericHttpClientStub);
     sandbox.assert.calledOnce(loginStub);
     sandbox.assert.neverCalledWith(
@@ -275,23 +313,29 @@ describe("Scan classes", function () {
       schedulerStub,
       sandbox.match(function (command) {
         const c = command.input;
-        const payload = JSON.parse(c.Target.Input);
+        const eventDetails = JSON.parse(c.Target.Input);
         return (
           command instanceof CreateScheduleCommand &&
           c.Name == `ScheduleBooking_${classId}` &&
           c.Target.EventBridgeParameters.Source == "GymBookingAssistant.scan" &&
           c.Target.EventBridgeParameters.DetailType ==
             "ClassBookingAvailable" &&
-          payload.id == classId &&
-          payload.bookingInfo.bookingUserStatus == "WaitingBookingOpensPremium"
+          eventDetails.userAlias == userAlias &&
+          eventDetails.class.id == classId &&
+          eventDetails.class.bookingInfo.bookingUserStatus ==
+            "WaitingBookingOpensPremium"
         );
       }),
     );
   });
 
-  function stubSecretConfig() {
-    getSecretStub.withArgs("loginUsername").returns("jdoe@example.com");
-    getSecretStub.returns(uuidv4());
+  function stubSecretsAndConfig() {
+    getUserCredentialsStub.returns({
+      loginUsername: "jdoe@example.com",
+      loginPassword: uuidv4(),
+      userId: uuidv4(),
+    });
+    getConfigStub.returns(uuidv4());
   }
 
   /**

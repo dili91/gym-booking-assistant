@@ -14,10 +14,17 @@ const EXTRA_TIME_CANCEL_BOOKING_IN_MINUTES = 60;
 exports.handler = async (event) => {
   //TODO future improvements: anticipate the scheduling a bit and get class detail. Need to poll till BookingInfo.bookingUserStatus is CanBook
 
-  const classDetails = event.detail;
+  const userAlias = event.detail.userAlias;
+  if (!userAlias) {
+    const errorMsg = "Received even without userAlias. Aborting";
+    await logging.error(errorMsg);
+    throw new Error(errorMsg);
+  }
 
-  logging.debug(
-    `Received event of type=${event["detail-type"]} from source=${event.source} with id=${event.id}.\nTrying to book class with id=${classDetails.id} and partitionDate=${classDetails.partitionDate} ...`,
+  const classDetails = event.detail.class;
+
+  await logging.debug(
+    `Received event of type=${event["detail-type"]} from source=${event.source} with id=${event.id}.\nTrying to book class with id=${classDetails.id} and partitionDate=${classDetails.partitionDate} for userAlias=${userAlias} ...`,
   );
 
   // Check class booking status. This should never be different from CanBook or WaitingBookingOpensPremium, but let's double check
@@ -53,12 +60,12 @@ exports.handler = async (event) => {
     return;
   }
 
-  //TODO: can these safely come on event?
-  const LOGIN_USERNAME = await utils.getSecret("loginUsername");
-  const LOGIN_PASSWORD = await utils.getSecret("loginPassword");
-  const USER_ID = await utils.getSecret("userId");
+  const userCredentials = await utils.getUserCredentials(userAlias);
 
-  let loginData = await gymApiClient.login(LOGIN_USERNAME, LOGIN_PASSWORD);
+  let loginData = await gymApiClient.login(
+    userCredentials.loginUsername,
+    userCredentials.loginPassword,
+  );
 
   const bookClassRequest = {
     method: "POST",
@@ -68,7 +75,7 @@ exports.handler = async (event) => {
     },
     data: {
       partitionDate: classDetails.partitionDate,
-      userId: USER_ID,
+      userId: userCredentials.userId,
     },
   };
 

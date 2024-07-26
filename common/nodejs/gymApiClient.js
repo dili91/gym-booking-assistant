@@ -8,6 +8,8 @@ const CORE_API_BASE_URI = "https://services.mywellness.com";
 const CALENDAR_API_BASE_URI = "https://calendar.mywellness.com/v2";
 
 const RESPONSE_BODY_MAX_SIZE_LOGGED = 300;
+
+//TODO: include response fields as well.
 const JSON_MASKING_CONFIG = {
   passwordFields: ["password"],
   emailFields: ["username"],
@@ -15,8 +17,8 @@ const JSON_MASKING_CONFIG = {
 
 module.exports = {
   login: async function (username, password) {
-    const APPLICATION_ID = await utils.getSecret("applicationId");
-    const LOGIN_DOMAIN = await utils.getSecret("loginDomain");
+    const APPLICATION_ID = await utils.getConfig("applicationId");
+    const LOGIN_DOMAIN = await utils.getConfig("loginDomain");
 
     const loginRequest = {
       method: "POST",
@@ -34,11 +36,10 @@ module.exports = {
       .request(loginRequest);
 
     if (module.exports.isResponseError(loginResponse)) {
-      await logging.error(
-        "Unable to login. stopping. Reason: " +
-          JSON.stringify(loginResponse.data),
-      );
-      process.exit(1);
+      const errorMsg = `Unable to login: ${JSON.stringify(loginResponse.data)}. Aborting`;
+      await logging.error(errorMsg);
+
+      throw new Error(errorMsg);
     }
 
     return loginResponse.data;
@@ -49,7 +50,7 @@ module.exports = {
     let client = axios.create();
 
     client.interceptors.request.use(async (request) => {
-      const CLIENT_ID = await utils.getSecret("clientId");
+      const CLIENT_ID = await utils.getConfig("clientId");
       request.headers["x-mwapps-client"] = CLIENT_ID;
       return request;
     });

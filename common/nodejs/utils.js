@@ -2,43 +2,62 @@ const {
   GetSecretValueCommand,
   SecretsManagerClient,
 } = require("@aws-sdk/client-secrets-manager");
+const secretsManagerClient = new SecretsManagerClient();
+
+const { SSMClient, GetParameterCommand } = require("@aws-sdk/client-ssm");
+const serviceSystemManagerClient = new SSMClient();
 
 const moment = require("moment-timezone");
-const secretsManagerClient = new SecretsManagerClient();
 
 const CET_TIMEZONE = "Europe/Rome";
 
-// Holds the JSON secret returned by the AWS secret manager
-let secret = null;
+// Holds the JSON config returned by the AWS config manager
+let config = null;
 
 module.exports = {
-  getEnvVariable: (name) => {
-    const value = process.env[name];
-    if (!value) {
-      throw new Error(`Environment variable ${name} is not defined`);
-    }
-    return value;
-  },
-
-  getSecret: async (name) => {
-    if (!secret) {
-      const secretValue = await secretsManagerClient.send(
-        new GetSecretValueCommand({
-          SecretId: "GymBookingAssistant",
+  /**
+   * Utility to fetch a config value
+   *
+   * @param {*} name of the config to lookup
+   */
+  getConfig: async (name) => {
+    if (!config) {
+      const parametersStoreResponse = await serviceSystemManagerClient.send(
+        new GetParameterCommand({
+          Name: "GymBookingAssistant",
         }),
       );
 
-      secret = JSON.parse(secretValue.SecretString);
+      console.log(parametersStoreResponse);
+
+      config = JSON.parse(parametersStoreResponse.Parameter.Value);
     }
 
-    const value = secret[name];
+    const value = config[name];
     if (!value) {
-      throw new Error(`Secret ${name} not found.`);
+      throw new Error(`Config "${name}" not found.`);
     }
 
     return value;
   },
 
+  /**
+   * Utility to fetch user's credentials
+   *
+   * @param {*} userAlias the user alias to which the secret belongs
+   * @returns a JSON representation of the user credentials. Includes loginUsername, loginPassword and userId
+   */
+  getUserCredentials: async (userAlias) => {
+    const credentials = await secretsManagerClient.send(
+      new GetSecretValueCommand({
+        SecretId: `GymBookingAssistant/Credentials/${userAlias}`,
+      }),
+    );
+
+    return JSON.parse(credentials.SecretString);
+  },
+
+  //TODO: add test
   truncateString: (str, num) => {
     if (str.length > num) {
       return str.slice(0, num) + "...";
@@ -47,6 +66,7 @@ module.exports = {
     }
   },
 
+  //TODO: add test
   stringToDateCET: (dateStr) => {
     const timezoneRegex = /Z|[+-]\d{2}:\d{2}|[+-]\d{4}|[A-Z]{3}/;
     if (timezoneRegex.test(dateStr)) {

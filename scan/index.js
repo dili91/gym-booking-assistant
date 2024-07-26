@@ -38,15 +38,23 @@ const SEARCH_CRITERIA = {
 };
 
 exports.handler = async (event) => {
-  // TODO: create a schedule on event bridge including a user identifier. 
-  // I should then query a secret that's specific to the user 
-  const LOGIN_USERNAME = await utils.getSecret("loginUsername");
-  const LOGIN_PASSWORD = await utils.getSecret("loginPassword");
+  const userAlias = event.detail.userAlias;
+  if (!userAlias) {
+    const errorMsg = "Received even without userAlias. Aborting";
+    await logging.error(errorMsg);
 
-  let loginData = await gymApiClient.login(LOGIN_USERNAME, LOGIN_PASSWORD);
+    throw new Error(errorMsg);
+  }
+
+  const userCredentials = await utils.getUserCredentials(userAlias);
+  let loginData = await gymApiClient.login(
+    userCredentials.loginUsername,
+    userCredentials.loginPassword,
+  );
+
+  const facilityId = await utils.getConfig("facilityId");
 
   // Search all classes that match my criteria of interest
-  const FACILITY_ID = await utils.getSecret("facilityId");
   const searchClassesRequest = {
     method: "GET",
     url: `${CALENDAR_API_BASE_URI}/enduser/class/search`,
@@ -54,7 +62,7 @@ exports.handler = async (event) => {
       Authorization: `Bearer ${loginData.token}`,
     },
     params: {
-      facilityId: FACILITY_ID,
+      facilityId: facilityId,
       fromDate: utils.nowCET().format("yyyyMMDD"),
       eventType: "Class",
     },
@@ -64,8 +72,10 @@ exports.handler = async (event) => {
     .request(searchClassesRequest);
 
   if (gymApiClient.isResponseError(searchClassesResponse)) {
-    logging.error("Unable to get classes. stopping");
-    process.exit(1);
+    const errorMsg = `Unable to get classes: ${JSON.stringify(searchClassesResponse.data)}. Aborting`;
+    logging.error(errorMsg);
+
+    throw new Error(errorMsg);
   }
 
   // It seems not possible to filter classes of interest via an API call. So we need to fetch them first
@@ -118,13 +128,13 @@ exports.handler = async (event) => {
         logging.debug(
           `Booking for class ${e.name} with id=${e.id} should happen immediately.`,
         );
-        await publishBookingAvailableEvent(e);
+        await publishBookingAvailableEvent(userAlias, e);
         break;
       case "WaitingBookingOpensPremium":
         logging.debug(
           `Booking for class ${e.name} with id=${e.id} should be scheduled on ${e.bookingInfo.bookingOpensOn}`,
         );
-        await scheduleFutureBooking(e);
+        await scheduleFutureBooking(userAlias, e);
         break;
       default:
         logging.error(
@@ -136,14 +146,17 @@ exports.handler = async (event) => {
 };
 
 //TODO: refine event payload
-async function publishBookingAvailableEvent(e) {
+async function publishBookingAvailableEvent(userAlias, classDetails) {
   const classBookingAvailableEvent = {
     Entries: [
       {
         Time: new Date(),
         Source: "GymBookingAssistant.scan",
         DetailType: "ClassBookingAvailable",
-        Detail: JSON.stringify(e),
+        Detail: JSON.stringify({
+          userAlias: userAlias,
+          class: classDetails,
+        }),
       },
     ],
   };
@@ -163,14 +176,14 @@ async function publishBookingAvailableEvent(e) {
 }
 
 //TODO: refine event payload
-async function scheduleFutureBooking(e) {
-  let bookingOpensOnUTC = new Date(e.bookingInfo.bookingOpensOn)
+async function scheduleFutureBooking(userAlias, classDetails) {
+  let bookingOpensOnUTC = new Date(classDetails.bookingInfo.bookingOpensOn)
     .toISOString()
     .slice(0, -5);
 
   const scheduleRequest = {
-    Name: `ScheduleBooking_${e.id}`,
-    Description: `Class: ${e.name} - Starts at: ${e.startDate}`,
+    Name: `ScheduleBooking_${classDetails.id}`,
+    Description: `Class: ${classDetails.name} - Starts at: ${classDetails.startDate}`,
     ScheduleExpression: `at(${bookingOpensOnUTC})`,
     Target: {
       Arn: "arn:aws:events:eu-south-1:097176176455:event-bus/default",
@@ -180,7 +193,10 @@ async function scheduleFutureBooking(e) {
         DetailType: "ClassBookingAvailable",
         Source: "GymBookingAssistant.scan",
       },
-      Input: JSON.stringify(e),
+      Input: JSON.stringify({
+        userAlias: userAlias,
+        class: classDetails,
+      }),
     },
     ActionAfterCompletion: ActionAfterCompletion.DELETE,
     FlexibleTimeWindow: {
