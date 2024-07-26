@@ -28,8 +28,6 @@ module.exports = {
         }),
       );
 
-      console.log(parametersStoreResponse);
-
       config = JSON.parse(parametersStoreResponse.Parameter.Value);
     }
 

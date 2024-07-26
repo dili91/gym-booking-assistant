@@ -7,12 +7,20 @@ const logging = require("./logging.js");
 const CORE_API_BASE_URI = "https://services.mywellness.com";
 const CALENDAR_API_BASE_URI = "https://calendar.mywellness.com/v2";
 
-const RESPONSE_BODY_MAX_SIZE_LOGGED = 300;
+const RESPONSE_BODY_MAX_SIZE_LOGGED = 30000;
 
-//TODO: include response fields as well.
 const JSON_MASKING_CONFIG = {
   passwordFields: ["password"],
-  emailFields: ["username"],
+  uuidFields:  ["data.userContext.credentialId", "data.credentialId"],
+  emailFields: ["username", "data.userContext.accountUsername", "data.userContext.email"],
+  phoneFields: ['data.userContext.mobilePhoneNumber'],
+  genericStrings: [
+    { fields: [
+      "token", "data.userContext.firstName", "data.userContext.address1",
+      "data.userContext.lastName", "data.userContext.nickName", "data.userContext.birthDate",
+      "data.userContext.displayBirthDate", "data.userContext.pictureUrl", "data.userContext.thumbPictureUrl"]
+    },
+  ]
 };
 
 module.exports = {
@@ -56,20 +64,22 @@ module.exports = {
     });
 
     client.interceptors.request.use(async (request) => {
+      const maskedPayload = maskData.maskJSON2(request.data, JSON_MASKING_CONFIG);
       await logging.debug(
         `>>> ${request.method.toUpperCase()} ${request.url}
         \nParams: ${JSON.stringify(request.params, null, 2)}
         \nBody:
-        \n${JSON.stringify(maskData.maskJSON2(request.data, JSON_MASKING_CONFIG), null, 2)}`,
+        \n${JSON.stringify(maskedPayload, null, 2)}`,
       );
       return request;
     });
 
     client.interceptors.response.use(async (response) => {
+      const maskedPayload = maskData.maskJSON2(response.data, JSON_MASKING_CONFIG);
       await logging.debug(
         `<<< ${response.status} ${response.request.method.toUpperCase()} ${response.config.url}
         \nBody:
-        \n${utils.truncateString(JSON.stringify(response.data, null, 2), RESPONSE_BODY_MAX_SIZE_LOGGED)}
+        \n${utils.truncateString(JSON.stringify(maskedPayload, null, 2), RESPONSE_BODY_MAX_SIZE_LOGGED)}
         \n\n`,
       );
       return response;
