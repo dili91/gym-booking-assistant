@@ -74,6 +74,10 @@ module.exports = {
     return moment.tz(dateStr, CET_TIMEZONE);
   },
 
+  /**
+   * Gets the current time
+   * @returns now in Moment type
+   */
   nowCET: () => {
     return moment.tz(CET_TIMEZONE);
   },

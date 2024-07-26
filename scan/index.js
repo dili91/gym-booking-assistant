@@ -47,36 +47,10 @@ exports.handler = async (event) => {
   }
 
   const userCredentials = await utils.getUserCredentials(userAlias);
-  let loginData = await gymApiClient.login(
-    userCredentials.loginUsername,
-    userCredentials.loginPassword,
-  );
 
-  const facilityId = await utils.getConfig("facilityId");
+  const gymApiClient = gymApiClient.init(userCredentials.loginUsername, userCredentials.loginPassword);
 
-  // Search all classes that match my criteria of interest
-  const searchClassesRequest = {
-    method: "GET",
-    url: `${CALENDAR_API_BASE_URI}/enduser/class/search`,
-    headers: {
-      Authorization: `Bearer ${loginData.token}`,
-    },
-    params: {
-      facilityId: facilityId,
-      fromDate: utils.nowCET().format("yyyyMMDD"),
-      eventType: "Class",
-    },
-  };
-  const searchClassesResponse = await gymApiClient
-    .getHttpClient()
-    .request(searchClassesRequest);
-
-  if (gymApiClient.isResponseError(searchClassesResponse)) {
-    const errorMsg = `Unable to get classes: ${JSON.stringify(searchClassesResponse.data)}. Aborting`;
-    logging.error(errorMsg);
-
-    throw new Error(errorMsg);
-  }
+  const searchClassesResponse = await gymApiClient.searchClasses(utils.nowCET());
 
   // It seems not possible to filter classes of interest via an API call. So we need to fetch them first
   // and retrospectively ignore some of those.
