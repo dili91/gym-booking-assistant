@@ -1,5 +1,7 @@
 const sandbox = require("sinon").createSandbox();
 const { v4: uuidv4 } = require("uuid");
+const moment = require("moment");
+var itParam = require("mocha-param");
 
 const { SSMClient, GetParameterCommand } = require("@aws-sdk/client-ssm");
 var utils = require("../utils");
@@ -16,7 +18,7 @@ describe("Utils", function () {
     sandbox.restore();
   });
 
-  describe("GetConfig", function () {
+  describe("getConfig", function () {
     let parametersStoreStub;
 
     it("Should yield a config value and avoid calling AWS ParametersStore on subsequent calls", async function () {
@@ -51,7 +53,7 @@ describe("Utils", function () {
     });
   });
 
-  describe("GetUserCredentials", function () {
+  describe("getUserCredentials", function () {
     let secretsManagerStub;
 
     it("Should yield user credentials coming from AWS Secrets manager", async function () {
@@ -83,25 +85,81 @@ describe("Utils", function () {
       expect(userCredentials.loginPassword).to.equal(loginPassword);
       expect(userCredentials.userId).to.equal(userId);
     });
+
+    it("Should invoke AWS Secrets manager every time", async function () {
+      // Arrange
+      secretsManagerStub = sandbox.stub(SecretsManagerClient.prototype, "send");
+      const userAlias = "jdoe";
+      const loginUsername = "jdoe@email.com";
+      const loginPassword = uuidv4();
+      const userId = uuidv4();
+
+      secretsManagerStub.returns({
+        SecretString: `{"loginUsername":"${loginUsername}", "loginPassword":"${loginPassword}", "userId":"${userId}"}`,
+      });
+
+      // Act
+      await utils.getUserCredentials(userAlias);
+      await utils.getUserCredentials(userAlias);
+
+      // Assert
+      sandbox.assert.calledTwice(secretsManagerStub);
+    });
   });
 
-  it("Should invoke AWS Secrets manager ever time", async function () {
-    // Arrange
-    secretsManagerStub = sandbox.stub(SecretsManagerClient.prototype, "send");
-    const userAlias = "jdoe";
-    const loginUsername = "jdoe@email.com";
-    const loginPassword = uuidv4();
-    const userId = uuidv4();
+  describe("truncateString", function () {
+    itParam(
+      "Should truncate ${value.input} after ${value.chars} chars and be equal to ${value.expected}",
+      [
+        //nowCET makes the test stable over time
+        {
+          input: "Andrea",
+          chars: 4,
+          expected: "Andr...",
+        },
+        {
+          input: "Andrea",
+          chars: 0,
+          expected: "...",
+        },
+        {
+          input: "Andrea",
+          chars: 10,
+          expected: "Andrea",
+        },
+      ],
+      function (value) {
+        // Act
+        const truncatedString = utils.truncateString(value.input, value.chars);
 
-    secretsManagerStub.returns({
-      SecretString: `{"loginUsername":"${loginUsername}", "loginPassword":"${loginPassword}", "userId":"${userId}"}`,
+        // Assert
+        expect(truncatedString).to.equal(value.expected);
+      },
+    );
+  });
+
+  describe("stringToDateCET", function () {
+    it("Should convert a date string without timezone into a Moment date in CET format", function () {
+      // Act
+      const dateCet = utils.stringToDateCET("2024-07-27T00:30:00");
+
+      // Assert
+      expect(dateCet.format("YYYY/MM/DD")).to.equal("2024/07/27");
+      expect(dateCet.tz()).to.equal("Europe/Rome");
     });
 
-    // Act
-    await utils.getUserCredentials(userAlias);
-    await utils.getUserCredentials(userAlias);
-
-    // Assert
-    sandbox.assert.calledTwice(secretsManagerStub);
+    it("Should throw an error if date string contains timezone indicators", function () {
+      try {
+        // Act
+        const dateCet = utils.stringToDateCET("2024-07-27T00:30:00Z");
+      } catch (error) {
+        // Assert
+        expect(error).to.be.an("error");
+        expect(error.name).to.be.equal("Error");
+        expect(error.message).to.be.equal(
+          "Input date string should not contain timezone info!",
+        );
+      }
+    });
   });
 });

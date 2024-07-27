@@ -55,7 +55,6 @@ module.exports = {
     return JSON.parse(credentials.SecretString);
   },
 
-  //TODO: add test
   truncateString: (str, num) => {
     if (str.length > num) {
       return str.slice(0, num) + "...";
@@ -64,7 +63,6 @@ module.exports = {
     }
   },
 
-  //TODO: add test
   stringToDateCET: (dateStr) => {
     const timezoneRegex = /Z|[+-]\d{2}:\d{2}|[+-]\d{4}|[A-Z]{3}/;
     if (timezoneRegex.test(dateStr)) {
