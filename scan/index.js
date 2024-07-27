@@ -144,7 +144,6 @@ exports.handler = async (event) => {
   }
 };
 
-//TODO: refine event payload
 async function publishBookingAvailableEvent(userAlias, classDetails) {
   const classBookingAvailableEvent = {
     Entries: [
@@ -152,10 +151,9 @@ async function publishBookingAvailableEvent(userAlias, classDetails) {
         Time: new Date(),
         Source: "GymBookingAssistant.scan",
         DetailType: "ClassBookingAvailable",
-        Detail: JSON.stringify({
-          userAlias: userAlias,
-          class: classDetails,
-        }),
+        Detail: JSON.stringify(
+          craftClassBookingAvailableEventPayload(userAlias, classDetails),
+        ),
       },
     ],
   };
@@ -174,7 +172,6 @@ async function publishBookingAvailableEvent(userAlias, classDetails) {
   }
 }
 
-//TODO: refine event payload
 async function scheduleFutureBooking(userAlias, classDetails) {
   let bookingOpensOnUTC = new Date(classDetails.bookingInfo.bookingOpensOn)
     .toISOString()
@@ -192,10 +189,11 @@ async function scheduleFutureBooking(userAlias, classDetails) {
         DetailType: "ClassBookingAvailable",
         Source: "GymBookingAssistant.scan",
       },
-      Input: JSON.stringify({
-        userAlias: userAlias,
-        class: classDetails,
-      }),
+      // The schedule event is one that contains the userAlias and a slimmed-down
+      // version of the class object coming from the Gym API
+      Input: JSON.stringify(
+        craftClassBookingAvailableEventPayload(userAlias, classDetails),
+      ),
     },
     ActionAfterCompletion: ActionAfterCompletion.DELETE,
     FlexibleTimeWindow: {
@@ -212,4 +210,44 @@ async function scheduleFutureBooking(userAlias, classDetails) {
       "There were one or more errors while creating a booking schedule.",
     );
   }
+}
+
+/**
+ * An internal utility that helps building ClassBookingAvailable events:
+ * {
+ * id: '9a809b9e-8b31-461c-9cf2-ecd1aafa6ff1',
+ * 'detail-type': 'ClassBookingAvailable',
+ * source: 'GymBookingAssistant.scan',
+ * detail: {
+ *   userAlias: '3b5b8ad6-bf38-488f-95b7-f1fdf9540aa1',
+ *   class: {
+ *     id: '4e1ba4c5-b447-4d85-a2e4-c461080cc34c',
+ *     name: 'Class name',
+ *     partitionDate: '20240727',
+ *     startDate: '2024-07-27T18:54:59',
+ *     bookingInfo: {
+ *      cancellationMinutesInAdvance: 120,
+ *      bookingUserStatus:"CanBook"
+ *     }
+ *   }
+ * }
+}
+ * @param {string} userAlias User alias representing the user that will be impersonated
+ * @param {JSON} classDetails Class object as returned by the Gym API
+ */
+function craftClassBookingAvailableEventPayload(userAlias, classDetails) {
+  return {
+    userAlias: userAlias,
+    class: {
+      id: classDetails.id,
+      name: classDetails.name,
+      partitionDate: classDetails.partitionDate,
+      startDate: classDetails.startDate,
+      bookingInfo: {
+        cancellationMinutesInAdvance:
+          classDetails.bookingInfo.cancellationMinutesInAdvance,
+        bookingUserStatus: classDetails.bookingInfo.bookingUserStatus,
+      },
+    },
+  };
 }

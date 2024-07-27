@@ -9,16 +9,28 @@ const RESPONSE_BODY_MAX_SIZE_LOGGED = 300;
 
 const JSON_MASKING_CONFIG = {
   passwordFields: ["password"],
-  uuidFields:  ["data.userContext.credentialId", "data.credentialId"],
-  emailFields: ["username", "data.userContext.accountUsername", "data.userContext.email"],
-  phoneFields: ['data.userContext.mobilePhoneNumber'],
+  uuidFields: ["data.userContext.credentialId", "data.credentialId"],
+  emailFields: [
+    "username",
+    "data.userContext.accountUsername",
+    "data.userContext.email",
+  ],
+  phoneFields: ["data.userContext.mobilePhoneNumber"],
   genericStrings: [
-    { fields: [
-      "token", "data.userContext.firstName", "data.userContext.address1",
-      "data.userContext.lastName", "data.userContext.nickName", "data.userContext.birthDate",
-      "data.userContext.displayBirthDate", "data.userContext.pictureUrl", "data.userContext.thumbPictureUrl"]
+    {
+      fields: [
+        "token",
+        "data.userContext.firstName",
+        "data.userContext.address1",
+        "data.userContext.lastName",
+        "data.userContext.nickName",
+        "data.userContext.birthDate",
+        "data.userContext.displayBirthDate",
+        "data.userContext.pictureUrl",
+        "data.userContext.thumbPictureUrl",
+      ],
     },
-  ]
+  ],
 };
 
 module.exports = {
@@ -61,7 +73,10 @@ module.exports = {
     });
 
     client.interceptors.request.use(async (request) => {
-      const maskedPayload = maskData.maskJSON2(request.data, JSON_MASKING_CONFIG);
+      const maskedPayload = maskData.maskJSON2(
+        request.data,
+        JSON_MASKING_CONFIG,
+      );
       await logging.debug(
         `>>> ${request.method.toUpperCase()} ${request.url}
         \nParams: ${JSON.stringify(request.params, null, 2)}
@@ -72,7 +87,10 @@ module.exports = {
     });
 
     client.interceptors.response.use(async (response) => {
-      const maskedPayload = maskData.maskJSON2(response.data, JSON_MASKING_CONFIG);
+      const maskedPayload = maskData.maskJSON2(
+        response.data,
+        JSON_MASKING_CONFIG,
+      );
       await logging.debug(
         `<<< ${response.status} ${response.request.method.toUpperCase()} ${response.config.url}
         \nBody:
