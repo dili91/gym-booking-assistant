@@ -11,19 +11,31 @@ const RESPONSE_BODY_MAX_SIZE_LOGGED = 30000;
 
 const JSON_MASKING_CONFIG = {
   passwordFields: ["password"],
-  uuidFields:  ["data.userContext.credentialId", "data.credentialId"],
-  emailFields: ["username", "data.userContext.accountUsername", "data.userContext.email"],
-  phoneFields: ['data.userContext.mobilePhoneNumber'],
+  uuidFields: ["data.userContext.credentialId", "data.credentialId"],
+  emailFields: [
+    "username",
+    "data.userContext.accountUsername",
+    "data.userContext.email",
+  ],
+  phoneFields: ["data.userContext.mobilePhoneNumber"],
   genericStrings: [
-    { fields: [
-      "token", "data.userContext.firstName", "data.userContext.address1",
-      "data.userContext.lastName", "data.userContext.nickName", "data.userContext.birthDate",
-      "data.userContext.displayBirthDate", "data.userContext.pictureUrl", "data.userContext.thumbPictureUrl"]
+    {
+      fields: [
+        "token",
+        "data.userContext.firstName",
+        "data.userContext.address1",
+        "data.userContext.lastName",
+        "data.userContext.nickName",
+        "data.userContext.birthDate",
+        "data.userContext.displayBirthDate",
+        "data.userContext.pictureUrl",
+        "data.userContext.thumbPictureUrl",
+      ],
     },
-  ]
+  ],
 };
 
-class GymApiClient{
+class GymApiClient {
   #loginUsername;
   #loginPassword;
   #httpClient;
@@ -35,14 +47,15 @@ class GymApiClient{
   }
 
   /**
-   * Search classes 
+   * Search classes
    * @param {} fromDate fromDate to consider
    * @returns the list of classes available
    */
   async searchClasses(fromDate) {
-    const loginResponse = await this.#login(this.#loginUsername, this.#loginPassword);
-
-    console.log("token" + loginResponse.token)
+    const loginResponse = await this.#login(
+      this.#loginUsername,
+      this.#loginPassword,
+    );
 
     const facilityId = await utils.getConfig("facilityId");
     const searchClassesRequest = {
@@ -58,11 +71,11 @@ class GymApiClient{
       },
     };
 
-    const searchClassesResponse = await this.#httpClient.request(searchClassesRequest);
+    const searchClassesResponse =
+      await this.#httpClient.request(searchClassesRequest);
 
     if (this.#isResponseError(searchClassesResponse)) {
       const errorMsg = `Unable to get classes: ${JSON.stringify(searchClassesResponse.data)}. Aborting`;
-      logging.error(errorMsg);
 
       throw new Error(errorMsg);
     }
@@ -70,7 +83,7 @@ class GymApiClient{
     return searchClassesResponse.data;
   }
 
-  async #login(){
+  async #login() {
     const applicationId = await utils.getConfig("applicationId");
     const loginDomain = await utils.getConfig("loginDomain");
 
@@ -107,7 +120,10 @@ class GymApiClient{
     });
 
     client.interceptors.request.use(async (request) => {
-      const maskedPayload = maskData.maskJSON2(request.data, JSON_MASKING_CONFIG);
+      const maskedPayload = maskData.maskJSON2(
+        request.data,
+        JSON_MASKING_CONFIG,
+      );
       await logging.debug(
         `>>> ${request.method.toUpperCase()} ${request.url}
         \nParams: ${JSON.stringify(request.params, null, 2)}
@@ -118,7 +134,10 @@ class GymApiClient{
     });
 
     client.interceptors.response.use(async (response) => {
-      const maskedPayload = maskData.maskJSON2(response.data, JSON_MASKING_CONFIG);
+      const maskedPayload = maskData.maskJSON2(
+        response.data,
+        JSON_MASKING_CONFIG,
+      );
       await logging.debug(
         `<<< ${response.status} ${response.request.method.toUpperCase()} ${response.config.url}
         \nBody:
@@ -174,10 +193,10 @@ module.exports = {
    * Initialize the GymApi client to be used by the app
    * @param {string} loginUsername the username of the user
    * @param {string} loginPassword the password of the user
-   * @returns 
+   * @returns the Gym API client instance
    */
-  init: function(loginUsername, loginPassword){
-    return new GymApiClient(loginUsername, loginPassword)
+  init: function (loginUsername, loginPassword) {
+    return new GymApiClient(loginUsername, loginPassword);
   },
 
   //TODO: ultimately remove
@@ -191,7 +210,10 @@ module.exports = {
     });
 
     client.interceptors.request.use(async (request) => {
-      const maskedPayload = maskData.maskJSON2(request.data, JSON_MASKING_CONFIG);
+      const maskedPayload = maskData.maskJSON2(
+        request.data,
+        JSON_MASKING_CONFIG,
+      );
       await logging.debug(
         `>>> ${request.method.toUpperCase()} ${request.url}
         \nParams: ${JSON.stringify(request.params, null, 2)}
@@ -202,7 +224,10 @@ module.exports = {
     });
 
     client.interceptors.response.use(async (response) => {
-      const maskedPayload = maskData.maskJSON2(response.data, JSON_MASKING_CONFIG);
+      const maskedPayload = maskData.maskJSON2(
+        response.data,
+        JSON_MASKING_CONFIG,
+      );
       await logging.debug(
         `<<< ${response.status} ${response.request.method.toUpperCase()} ${response.config.url}
         \nBody:

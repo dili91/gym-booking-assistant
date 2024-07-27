@@ -48,13 +48,16 @@ exports.handler = async (event) => {
 
   const userCredentials = await utils.getUserCredentials(userAlias);
 
-  const gymApiClient = gymApiClient.init(userCredentials.loginUsername, userCredentials.loginPassword);
+  const gymClient = gymApiClient.init(
+    userCredentials.loginUsername,
+    userCredentials.loginPassword,
+  );
 
-  const searchClassesResponse = await gymApiClient.searchClasses(utils.nowCET());
+  const searchClassesResponse = await gymClient.searchClasses(utils.nowCET());
 
   // It seems not possible to filter classes of interest via an API call. So we need to fetch them first
   // and retrospectively ignore some of those.
-  const filteredEvents = searchClassesResponse.data
+  const filteredEvents = searchClassesResponse
     .filter(
       (e) =>
         // excludes the classes booked already

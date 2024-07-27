@@ -1,5 +1,6 @@
 const sandbox = require("sinon").createSandbox();
 const { v4: uuidv4 } = require("uuid");
+const { expect } = require("chai");
 var itParam = require("mocha-param");
 
 var scan = require("../index");
@@ -20,8 +21,7 @@ describe("Scan classes", function () {
   let getConfigStub;
   let eventBridgeStub;
   let schedulerStub;
-  let loginStub;
-  let genericHttpClientStub;
+  let searchClassesStub;
 
   beforeEach(() => {
     // Stub interactions with secrets
@@ -31,18 +31,13 @@ describe("Scan classes", function () {
 
     nowCETStub = sandbox.stub(utils, "nowCET");
 
-    // Stub Gym API client
-    let httpClientFake = gymApiClient.getHttpClient();
-    httpClientFake.interceptors.request.handlers = [];
-    genericHttpClientStub = sandbox.stub(httpClientFake, "request");
-    gymApiClientStub = sandbox
-      .stub(gymApiClient, "getHttpClient")
-      .returns(httpClientFake);
-
-    // Stub login response
-    loginStub = sandbox.stub(gymApiClient, "login");
-    loginStub.returns({
-      token: "a-mock-token",
+    // Internal stub objects that will be used to return canned responses
+    searchClassesStub = sandbox.stub();
+    sandbox.stub(gymApiClient, "init").returns({
+      login: function () {
+        return { token: "a-mock-token" };
+      },
+      searchClasses: searchClassesStub,
     });
 
     // Stub for the interactions with AWS EventBridge
@@ -54,6 +49,42 @@ describe("Scan classes", function () {
 
   afterEach(() => {
     sandbox.restore();
+  });
+
+  it("Should throw an error if userAlias is not included in event", async function () {
+    try {
+      // Act
+      await scan.handler({
+        detail: {},
+      });
+    } catch (error) {
+      // Assert
+      expect(error).to.be.an("error");
+      expect(error.name).to.be.equal("Error");
+      expect(error.message).to.be.equal(
+        "Received even without userAlias. Aborting",
+      );
+    }
+  });
+
+  it("It throw an error if login fails", async function () {
+    // Arrange
+    const errorMsg = "Unable to login. Aborting.";
+    searchClassesStub.throws(new Error(errorMsg));
+
+    try {
+      // Act
+      await scan.handler({
+        detail: {
+          userAlias: uuidv4(),
+        },
+      });
+    } catch (error) {
+      // Assert
+      expect(error).to.be.an("error");
+      expect(error.name).to.be.equal("Error");
+      expect(error.message).to.be.equal(errorMsg);
+    }
   });
 
   itParam(
@@ -101,19 +132,7 @@ describe("Scan classes", function () {
 
       // Assert
       sandbox.assert.calledOnceWithMatch(getUserCredentialsStub, userAlias);
-      sandbox.assert.calledOnceWithMatch(getConfigStub, "facilityId");
-      sandbox.assert.calledOnce(loginStub);
-      sandbox.assert.calledOnceWithMatch(
-        genericHttpClientStub,
-        sandbox.match(function (request) {
-          return (
-            request.method == "GET" &&
-            request.url.endsWith("/class/search") &&
-            request.headers.Authorization.length > 0 &&
-            request.params.fromDate == nowCET.format("yyyyMMDD")
-          );
-        }),
-      );
+      sandbox.assert.calledOnceWithMatch(searchClassesStub, nowCET);
       sandbox.assert.calledOnceWithMatch(
         eventBridgeStub,
         sandbox.match(function (command) {
@@ -181,19 +200,7 @@ describe("Scan classes", function () {
 
       // Assert
       sandbox.assert.calledOnceWithMatch(getUserCredentialsStub, userAlias);
-      sandbox.assert.calledOnceWithMatch(getConfigStub, "facilityId");
-      sandbox.assert.calledOnce(loginStub);
-      sandbox.assert.calledOnceWithMatch(
-        genericHttpClientStub,
-        sandbox.match(function (request) {
-          return (
-            request.method == "GET" &&
-            request.url.endsWith("/class/search") &&
-            request.headers.Authorization.length > 0 &&
-            request.params.fromDate == nowCET.format("yyyyMMDD")
-          );
-        }),
-      );
+      sandbox.assert.calledOnceWithMatch(searchClassesStub, nowCET);
       sandbox.assert.notCalled(eventBridgeStub);
     },
   );
@@ -204,7 +211,8 @@ describe("Scan classes", function () {
     const userAlias = uuidv4();
 
     // nowCET will return 2024-07-11T09:00:00, and so the test utils will build a class startDate 1 hour after
-    nowCETStub.returns(utils.stringToDateCET("2024-07-11T09:00:00"));
+    const fixedDate = utils.stringToDateCET("2024-07-11T09:00:00");
+    nowCETStub.returns(fixedDate);
     stubSearchClassResponse(classId, "Pilates", "CanBook");
 
     eventBridgeStub
@@ -240,18 +248,7 @@ describe("Scan classes", function () {
 
     // Assert
     sandbox.assert.calledOnceWithMatch(getUserCredentialsStub, userAlias);
-    sandbox.assert.calledOnceWithMatch(getConfigStub, "facilityId");
-    sandbox.assert.calledOnce(loginStub);
-    sandbox.assert.calledOnceWithMatch(
-      genericHttpClientStub,
-      sandbox.match(function (request) {
-        return (
-          request.method == "GET" &&
-          request.url.endsWith("/class/search") &&
-          request.headers.Authorization.length > 0
-        );
-      }),
-    );
+    sandbox.assert.calledOnceWithMatch(searchClassesStub, fixedDate);
 
     sandbox.assert.calledOnceWithMatch(
       eventBridgeStub,
@@ -275,7 +272,8 @@ describe("Scan classes", function () {
     const userAlias = uuidv4();
     const classId = uuidv4();
 
-    nowCETStub.returns(utils.stringToDateCET("2024-07-11T08:00:00"));
+    const fixedDate = utils.stringToDateCET("2024-07-11T08:00:00");
+    nowCETStub.returns(fixedDate);
     stubSearchClassResponse(classId, "Pilates", "WaitingBookingOpensPremium");
 
     schedulerStub
@@ -301,9 +299,7 @@ describe("Scan classes", function () {
 
     // Assert
     sandbox.assert.calledOnceWithMatch(getUserCredentialsStub, userAlias);
-    sandbox.assert.calledOnceWithMatch(getConfigStub, "facilityId");
-    sandbox.assert.calledOnce(genericHttpClientStub);
-    sandbox.assert.calledOnce(loginStub);
+    sandbox.assert.calledOnceWithMatch(searchClassesStub, fixedDate);
     sandbox.assert.neverCalledWith(
       eventBridgeStub,
       sandbox.match(sandbox.match.instanceOf(PutEventsCommand)),
@@ -359,75 +355,64 @@ describe("Scan classes", function () {
       .add(1, "hour")
       .format(dateFormat);
 
-    genericHttpClientStub
-      .withArgs(
-        sandbox.match(function (request) {
-          return (
-            request.method == "GET" && request.url.endsWith("/class/search")
-          );
-        }),
-      )
-      .returns({
-        status: 200,
-        data: [
-          {
-            id: id,
-            cannotTrack: false,
-            name: name,
-            room: "Studio Cycle",
-            roomId: "610407c8f03bcd23e39aa1f9",
-            hasLayout: true,
-            startDate: startDateStringCET,
-            partitionDate: 20240703,
-            endDate: endDateStringCET,
-            recurrenceStartDate: "2024-05-02T07:15:00",
-            recurrenceEndDate: "2025-03-31T08:15:00",
-            isSingleOccurrence: false,
-            calendarEventType: "Class",
-            eventTypeId: "7f90a46f-517c-4b7c-aecb-37e3d570c7da",
-            staffId: "569d7004-10d0-4722-9578-30eeb2bb344b",
-            staffUserId: "881d683e-181b-4094-934f-74c3266d1197",
-            assignedTo: "De Bernardi Simona",
-            facilityName: "Milano Bocconi",
-            facilityId: "b65351c6-02b4-4e62-9d8c-416e17b9b6fe",
-            chainId: "34ba747a-29f2-46bf-b82a-ecefb4db4951",
-            pictureUrl:
-              "https://publicmedia.mywellness.com/physical_activities/images/7ca2347e-aaf7-40c0-82b4-ccf7cf841343.jpg",
-            maxParticipants: 15,
-            isParticipant: false,
-            hasBeenDone: false,
-            metsPerHour: 5,
-            estimatedCalories: 438,
-            estimatedMove: 833,
-            autoLogin: false,
-            tags: [],
-            waitingListPosition: 0,
-            waitingListCounter: 0,
-            isInWaitingList: false,
-            liveEvent: false,
-            autoStartEvent: false,
-            availablePlaces: 0,
-            extData: {},
-            bookingInfo: {
-              bookingOpensOn: "2024-06-28T07:15:00+02:00",
-              bookingOpensOnMinutesInAdvance: 7200,
-              priorityBookingMinutesInAdvance: 7200,
-              cancellationMinutesInAdvance: 120,
-              bookingHasWaitingList: true,
-              bookingTimeInAdvanceType: "Hours",
-              bookingTimeInAdvanceValue: 48,
-              bookingUserStatus: status,
-              bookingAvailable: true,
-              dayInAdvanceStartHour: 0,
-              dayInAdvanceStartMinutes: 0,
-            },
-            skus: [],
-            actualizedStartDateTime: "2024-07-03T07:15:00",
-            hasPenaltiesOn: false,
-            numberOfParticipants: 13,
-            bookOpenedNotificationReminderEnabled: false,
-          },
-        ],
-      });
+    searchClassesStub.returns([
+      {
+        id: id,
+        cannotTrack: false,
+        name: name,
+        room: "Studio Cycle",
+        roomId: "610407c8f03bcd23e39aa1f9",
+        hasLayout: true,
+        startDate: startDateStringCET,
+        partitionDate: 20240703,
+        endDate: endDateStringCET,
+        recurrenceStartDate: "2024-05-02T07:15:00",
+        recurrenceEndDate: "2025-03-31T08:15:00",
+        isSingleOccurrence: false,
+        calendarEventType: "Class",
+        eventTypeId: "7f90a46f-517c-4b7c-aecb-37e3d570c7da",
+        staffId: "569d7004-10d0-4722-9578-30eeb2bb344b",
+        staffUserId: "881d683e-181b-4094-934f-74c3266d1197",
+        assignedTo: "De Bernardi Simona",
+        facilityName: "Milano Bocconi",
+        facilityId: "b65351c6-02b4-4e62-9d8c-416e17b9b6fe",
+        chainId: "34ba747a-29f2-46bf-b82a-ecefb4db4951",
+        pictureUrl:
+          "https://publicmedia.mywellness.com/physical_activities/images/7ca2347e-aaf7-40c0-82b4-ccf7cf841343.jpg",
+        maxParticipants: 15,
+        isParticipant: false,
+        hasBeenDone: false,
+        metsPerHour: 5,
+        estimatedCalories: 438,
+        estimatedMove: 833,
+        autoLogin: false,
+        tags: [],
+        waitingListPosition: 0,
+        waitingListCounter: 0,
+        isInWaitingList: false,
+        liveEvent: false,
+        autoStartEvent: false,
+        availablePlaces: 0,
+        extData: {},
+        bookingInfo: {
+          bookingOpensOn: "2024-06-28T07:15:00+02:00",
+          bookingOpensOnMinutesInAdvance: 7200,
+          priorityBookingMinutesInAdvance: 7200,
+          cancellationMinutesInAdvance: 120,
+          bookingHasWaitingList: true,
+          bookingTimeInAdvanceType: "Hours",
+          bookingTimeInAdvanceValue: 48,
+          bookingUserStatus: status,
+          bookingAvailable: true,
+          dayInAdvanceStartHour: 0,
+          dayInAdvanceStartMinutes: 0,
+        },
+        skus: [],
+        actualizedStartDateTime: "2024-07-03T07:15:00",
+        hasPenaltiesOn: false,
+        numberOfParticipants: 13,
+        bookOpenedNotificationReminderEnabled: false,
+      },
+    ]);
   }
 });
