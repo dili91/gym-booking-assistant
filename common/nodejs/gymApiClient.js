@@ -51,7 +51,6 @@ module.exports = {
     return loginResponse.data;
   },
 
-  //TODO: ultimately remove
   getHttpClient: function () {
     let client = axios.create();
 
@@ -86,7 +85,6 @@ module.exports = {
     return client;
   },
 
-  //TODO: make this private in the end
   isResponseError: (response) => {
     return (
       response.status < 200 ||
