@@ -56,7 +56,6 @@ exports.handler = async (event) => {
       `Booking rejected to avoid penalties, because class could not be un-booked. startDate=${startDateCET} timeToClassStartInMinutes=${timeToClassStartInMinutes} timeToCancelBookingMinutes=${timeToCancelBookingMinutes}`,
     );
 
-    //TODO: improve the definition of BookingFailed to cover both validation and external API errors, and then send those messages also in these cases
     return;
   }
 
@@ -89,9 +88,8 @@ exports.handler = async (event) => {
     );
 
     await publishBookingFailedEvent(
-      classDetails.id,
-      classDetails.name,
-      classDetails.startDate,
+      userAlias,
+      classDetails,
       bookClassResponse.data.errors,
     );
 
@@ -101,24 +99,16 @@ exports.handler = async (event) => {
   logging.debug(
     `Successfully booked class with id=${classDetails.id} and partitionDate=${classDetails.partitionDate}`,
   );
-  await publishBookingCompletedEvent(
-    classDetails.id,
-    classDetails.name,
-    classDetails.startDate,
-  );
+  await publishBookingCompletedEvent(userAlias, classDetails);
 };
 
 /**
- * Used to send an event represent a successful booking
- * @param {*} classId
- * @param {*} partitionDate
- * @param {*} result the underlying EventBridge putEvent API response
+ * Used to send a ClassBookingCompleted event to represent a successful booking
+ * @param {*} userAlias
+ * @param {*} classDetails
+ * @returns
  */
-async function publishBookingCompletedEvent(
-  classId,
-  className,
-  classStartDate,
-) {
+async function publishBookingCompletedEvent(userAlias, classDetails) {
   const classBookingCompletedEvent = {
     Entries: [
       {
@@ -126,9 +116,12 @@ async function publishBookingCompletedEvent(
         Source: "GymBookingAssistant.book",
         DetailType: "ClassBookingCompleted",
         Detail: JSON.stringify({
-          classId: classId,
-          className: className,
-          classStartDate: classStartDate,
+          userAlias: userAlias,
+          class: {
+            id: classDetails.id,
+            name: classDetails.name,
+            startDate: classDetails.startDate,
+          },
         }),
       },
     ],
@@ -138,18 +131,13 @@ async function publishBookingCompletedEvent(
 }
 
 /**
- * Used to send an event represent a failed booking
- * @param {*} classId
- * @param {*} partitionDate
- * @param {*} result the underlying EventBridge putEvent API response
+ * Used to send a ClassBookingFailed event to represent a failed booking
+ * @param {*} userAlias
+ * @param {*} classDetails
+ * @param {*} errors the errors array
+ * @returns
  */
-async function publishBookingFailedEvent(
-  classId,
-  className,
-  classStartDate,
-  errors,
-) {
-  //TODO: make errors singular
+async function publishBookingFailedEvent(userAlias, classDetails, errors) {
   const classBookingCompletedEvent = {
     Entries: [
       {
@@ -157,9 +145,12 @@ async function publishBookingFailedEvent(
         Source: "GymBookingAssistant.book",
         DetailType: "ClassBookingFailed",
         Detail: JSON.stringify({
-          classId: classId,
-          className: className,
-          classStartDate: classStartDate,
+          userAlias: userAlias,
+          class: {
+            id: classDetails.id,
+            name: classDetails.name,
+            startDate: classDetails.startDate,
+          },
           errors: errors,
         }),
       },

@@ -151,10 +151,13 @@ describe("Book class", function () {
           command instanceof PutEventsCommand &&
           e.Source == "GymBookingAssistant.book" &&
           e.DetailType == "ClassBookingCompleted" &&
-          eventPayload.classStartDate ==
+          eventPayload.userAlias ==
+            classBookingAvailableEvent.detail.userAlias &&
+          eventPayload.class.startDate ==
             classBookingAvailableEvent.detail.class.startDate &&
-          eventPayload.classId == classBookingAvailableEvent.detail.class.id &&
-          eventPayload.className == classBookingAvailableEvent.detail.class.name
+          eventPayload.class.id == classBookingAvailableEvent.detail.class.id &&
+          eventPayload.class.name ==
+            classBookingAvailableEvent.detail.class.name
         );
       }),
     );
@@ -283,11 +286,14 @@ describe("Book class", function () {
           command instanceof PutEventsCommand &&
           e.Source == "GymBookingAssistant.book" &&
           e.DetailType == "ClassBookingFailed" &&
+          eventPayload.userAlias ==
+            classBookingAvailableEvent.detail.userAlias &&
           eventPayload.errors[0].field == tooEarlyBookingError.field &&
-          eventPayload.classStartDate ==
+          eventPayload.class.startDate ==
             classBookingAvailableEvent.detail.class.startDate &&
-          eventPayload.classId == classBookingAvailableEvent.detail.class.id &&
-          eventPayload.className == classBookingAvailableEvent.detail.class.name
+          eventPayload.class.id == classBookingAvailableEvent.detail.class.id &&
+          eventPayload.class.name ==
+            classBookingAvailableEvent.detail.class.name
         );
       }),
     );
