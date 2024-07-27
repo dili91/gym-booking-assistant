@@ -5,9 +5,7 @@ const utils = require("./utils.js");
 const logging = require("./logging.js");
 
 const CORE_API_BASE_URI = "https://services.mywellness.com";
-const CALENDAR_API_BASE_URI = "https://calendar.mywellness.com/v2";
-
-const RESPONSE_BODY_MAX_SIZE_LOGGED = 30000;
+const RESPONSE_BODY_MAX_SIZE_LOGGED = 300;
 
 const JSON_MASKING_CONFIG = {
   passwordFields: ["password"],
