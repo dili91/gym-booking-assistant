@@ -18,7 +18,6 @@ const utils = require("/opt/nodejs/utils");
 const logging = require("/opt/nodejs/logging");
 const gymApiClient = require("/opt/nodejs/gymApiClient");
 
-//TODO: move into module
 const CALENDAR_API_BASE_URI = "https://calendar.mywellness.com/v2";
 
 const SEARCH_CRITERIA = {
