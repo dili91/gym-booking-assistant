@@ -4393,8 +4393,8 @@
     },
     {
       "type": "text",
-      "version": 1962,
-      "versionNonce": 178486496,
+      "version": 1981,
+      "versionNonce": 2012564704,
       "index": "b35",
       "isDeleted": false,
       "id": "cXVWi3X4Rn1RrGCv8caUU",
@@ -4404,11 +4404,11 @@
       "roughness": 1,
       "opacity": 100,
       "angle": 0,
-      "x": 397.9963674247265,
+      "x": 406.8763540685177,
       "y": 431.47436876558896,
       "strokeColor": "#000000",
       "backgroundColor": "transparent",
-      "width": 83.31195265054703,
+      "width": 65.55197936296463,
       "height": 38.4,
       "seed": 2032117024,
       "groupIds": [
@@ -4422,16 +4422,16 @@
           "type": "arrow"
         }
       ],
-      "updated": 1722126016262,
+      "updated": 1722126342849,
       "link": null,
       "locked": false,
       "fontSize": 16,
       "fontFamily": 1,
-      "text": "Parameter\nStore",
+      "text": "Systems\nManager",
       "textAlign": "center",
       "verticalAlign": "top",
       "containerId": null,
-      "originalText": "Parameter\nStore",
+      "originalText": "Systems\nManager",
       "autoResize": true,
       "lineHeight": 1.2
     },
@@ -5295,8 +5295,8 @@
     },
     {
       "type": "arrow",
-      "version": 308,
-      "versionNonce": 2141760736,
+      "version": 346,
+      "versionNonce": 485463264,
       "index": "b3N",
       "isDeleted": false,
       "id": "P0OwaxAYCYWQhjSapXx4l",
@@ -5307,11 +5307,11 @@
       "opacity": 40,
       "angle": 0,
       "x": 555.169536853904,
-      "y": 584.2842945728773,
+      "y": 583.9260830793926,
       "strokeColor": "#1e1e1e",
       "backgroundColor": "#a5d8ff",
-      "width": 110.03047995780798,
-      "height": 108.77952664575469,
+      "width": 107.54242170686268,
+      "height": 108.42131515226987,
       "seed": 914424032,
       "groupIds": [],
       "frameId": null,
@@ -5319,7 +5319,7 @@
         "type": 2
       },
       "boundElements": [],
-      "updated": 1722126028110,
+      "updated": 1722126342850,
       "link": null,
       "locked": false,
       "startBinding": {
@@ -5341,8 +5341,8 @@
           0
         ],
         [
-          -110.03047995780798,
-          -108.77952664575469
+          -107.54242170686268,
+          -108.42131515226987
         ]
       ]
     }
